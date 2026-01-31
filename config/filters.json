@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "schema_version": "1.0",
+  "metadata": {
+    "name": "Clean Amazon Search Filters",
+    "description": "Amazon.co.jp用フィルタープリセットと検索オプションの定義",
+    "author": "Clean Amazon Search",
+    "last_updated": "2026-01-31",
+    "last_verified": "2026-01-31"
+  },
+  "presets": {
+    "standard": {
+      "id": "standard",
+      "name": "スタンダード",
+      "description": "Prime対象（Amazon配送）",
+      "subtext": "日本の優良セラーも表示",
+      "recommended": true,
+      "params": {
+        "p_85": "2322926051"
+      }
+    },
+    "premium": {
+      "id": "premium",
+      "name": "プレミアム",
+      "description": "Prime対象 + 評価★4以上",
+      "subtext": "より厳選された商品",
+      "recommended": false,
+      "params": {
+        "p_85": "2322926051",
+        "p_72": "83461051"
+      }
+    },
+    "strict": {
+      "id": "strict",
+      "name": "ストリクト",
+      "description": "Amazon公式販売のみ",
+      "subtext": "最も厳格（商品数少なめ）",
+      "recommended": false,
+      "params": {
+        "p_6": "AN1VRQENFRJN5"
+      }
+    }
+  },
+  "options": {
+    "fulfilled_by_amazon": {
+      "param": "p_n_fulfilled_by_amazon",
+      "value": "true",
+      "label": "Amazon配送（FBA）のみ"
+    },
+    "domestic_shipping": {
+      "param": "p_n_shipping_option-bin",
+      "value": "3242090051",
+      "label": "国内発送のみ"
+    },
+    "prime_only": {
+      "param": "p_85",
+      "value": "2322926051",
+      "label": "Prime対象のみ"
+    },
+    "amazon_seller": {
+      "param": "p_6",
+      "value": "AN1VRQENFRJN5",
+      "label": "Amazon公式のみ"
+    }
+  },
+  "rating_options": {
+    "4_and_up": {
+      "param": "p_72",
+      "value": "83461051",
+      "label": "★4以上"
+    },
+    "3_and_up": {
+      "param": "p_72",
+      "value": "83460951",
+      "label": "★3以上"
+    }
+  }
+}

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clean Amazon Search - セットアップ</title>
+  <link rel="stylesheet" href="onboarding.css">
+</head>
+<body>
+  <a href="#main-content" class="sr-only">メインコンテンツへスキップ</a>
+  <div class="onboarding-container" role="main" aria-label="オンボーディングウィザード">
+    <!-- プログレスバー -->
+    <nav class="progress-bar" role="tablist" aria-label="進行状況">
+      <div class="progress-step active" data-step="1" role="tab" aria-selected="true" aria-label="ステップ1: ようこそ" tabindex="0"></div>
+      <div class="progress-step" data-step="2" role="tab" aria-selected="false" aria-label="ステップ2: 機能説明" tabindex="-1"></div>
+      <div class="progress-step" data-step="3" role="tab" aria-selected="false" aria-label="ステップ3: フィルター選択" tabindex="-1"></div>
+      <div class="progress-step" data-step="4" role="tab" aria-selected="false" aria-label="ステップ4: 自動適用設定" tabindex="-1"></div>
+    </nav>
+
+    <div class="content" id="main-content">
+      <!-- Step 1: ウェルカム -->
+      <div class="step active" data-step="1" role="tabpanel" aria-label="ようこそ" id="step-1">
+        <div class="welcome-icon">🛡️</div>
+        <h1 class="welcome-title">Clean Amazon Search へようこそ</h1>
+        <p class="welcome-subtitle">
+          Amazon でのお買い物を、もっと安心に。<br>
+          信頼できる商品を簡単に見つけられます。
+        </p>
+
+        <div class="button-area">
+          <button class="btn-primary" data-next="2" aria-label="次のステップへ進む">
+            はじめる →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: 機能説明 -->
+      <div class="step" data-step="2" role="tabpanel" aria-label="機能説明" aria-hidden="true" id="step-2">
+        <h2 class="feature-title">信頼できる商品を、かんたんに。</h2>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-icon">🇯🇵</span>
+            <span class="feature-text">国内から発送される商品</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📦</span>
+            <span class="feature-text">Amazonが配送を担当する商品</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🏭</span>
+            <span class="feature-text">日本のメーカー・専門店も表示</span>
+          </div>
+        </div>
+
+        <p class="feature-description">
+          海外から発送される商品を除外し、<br>
+          安心してお買い物できます。
+        </p>
+
+        <div class="button-area">
+          <button class="btn-primary" data-next="3" aria-label="次のステップへ進む">
+            次へ →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: フィルター選択 -->
+      <div class="step" data-step="3" role="tabpanel" aria-label="フィルター選択" aria-hidden="true" id="step-3">
+        <h2 class="filter-title">どのくらい絞り込みますか？</h2>
+
+        <div class="filter-options" role="radiogroup" aria-label="フィルター強度を選択">
+          <div class="filter-option selected" data-preset="standard" role="radio" aria-checked="true" tabindex="0">
+            <div class="filter-option-header">
+              <input type="radio" name="filter-preset" value="standard" class="filter-radio" checked aria-hidden="true">
+              <span class="filter-option-name">スタンダード</span>
+              <span class="filter-option-recommended">推奨</span>
+            </div>
+            <div class="filter-option-desc" id="desc-standard">Prime対象（Amazon配送） — 日本の優良セラーも表示</div>
+          </div>
+
+          <div class="filter-option" data-preset="premium" role="radio" aria-checked="false" tabindex="0">
+            <div class="filter-option-header">
+              <input type="radio" name="filter-preset" value="premium" class="filter-radio" aria-hidden="true">
+              <span class="filter-option-name">プレミアム</span>
+            </div>
+            <div class="filter-option-desc" id="desc-premium">Prime対象 + 評価★4以上 — より厳選された商品</div>
+          </div>
+
+          <div class="filter-option" data-preset="strict" role="radio" aria-checked="false" tabindex="0">
+            <div class="filter-option-header">
+              <input type="radio" name="filter-preset" value="strict" class="filter-radio" aria-hidden="true">
+              <span class="filter-option-name">ストリクト</span>
+            </div>
+            <div class="filter-option-desc" id="desc-strict">Amazon公式販売のみ — 最も厳格（商品数少なめ）</div>
+          </div>
+        </div>
+
+        <div class="button-area">
+          <button class="btn-primary" data-next="4" aria-label="次のステップへ進む">
+            次へ →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: 自動適用設定 -->
+      <div class="step" data-step="4" role="tabpanel" aria-label="自動適用設定" aria-hidden="true" id="step-4">
+        <h2 class="auto-apply-title">自動で絞り込みますか？</h2>
+
+        <div class="auto-apply-options" role="radiogroup" aria-label="自動適用の設定を選択">
+          <div class="auto-apply-option" data-auto="true" role="radio" aria-checked="false" tabindex="0">
+            <div class="auto-apply-option-header">
+              <input type="radio" name="auto-apply" value="true" class="auto-apply-radio" aria-hidden="true">
+              <span class="auto-apply-option-name">はい</span>
+            </div>
+            <div class="auto-apply-option-desc" id="desc-auto-yes">Amazon検索時に自動でフィルターを適用</div>
+          </div>
+
+          <div class="auto-apply-option selected" data-auto="false" role="radio" aria-checked="true" tabindex="0">
+            <div class="auto-apply-option-header">
+              <input type="radio" name="auto-apply" value="false" class="auto-apply-radio" checked aria-hidden="true">
+              <span class="auto-apply-option-name">いいえ</span>
+              <span class="auto-apply-option-recommended">推奨</span>
+            </div>
+            <div class="auto-apply-option-desc" id="desc-auto-no">手動でフィルターを適用（ボタンをクリック）</div>
+          </div>
+        </div>
+
+        <p class="auto-apply-note">※ 後からいつでも変更できます</p>
+
+        <div class="button-area">
+          <button class="btn-primary btn-complete" id="complete-btn" aria-label="セットアップを完了する">
+            完了 ✓
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Clean Amazon Search v1.0.0
+    </div>
+  </div>
+
+  <script src="onboarding.js"></script>
+</body>
+</html>

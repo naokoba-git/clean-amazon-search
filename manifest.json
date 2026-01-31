@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "Clean Amazon Search",
+  "version": "1.0.0",
+  "description": "国内発送・Amazon配送の商品を優先表示。日本の優良セラーも含めて、安心してお買い物。",
+  "default_locale": "ja",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://www.amazon.co.jp/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.amazon.co.jp/s*"],
+      "js": ["scripts/constants.js", "scripts/filter-utils.js", "scripts/seller-checker.js", "scripts/content.js"]
+    },
+    {
+      "matches": ["*://www.amazon.co.jp/dp/*", "*://www.amazon.co.jp/*/dp/*", "*://www.amazon.co.jp/gp/product/*"],
+      "js": ["scripts/constants.js", "scripts/filter-utils.js", "scripts/seller-checker.js", "scripts/product.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "config/filters.json",
+        "config/sellers.json"
+      ],
+      "matches": ["*://www.amazon.co.jp/*"]
+    }
+  ],
+  "commands": {
+    "apply-filter": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "安心フィルターを適用"
+    },
+    "toggle-auto": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "自動適用モードの切り替え"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
