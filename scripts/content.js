@@ -1,10 +1,12 @@
 /**
  * Clean Amazon Search - 検索結果ページ用 Content Script
- * @fileoverview 検索結果ページでのフィルター適用とUIボタン表示
+ * @fileoverview 検索結果ページでDOM解析ベースのフィルタリングを適用
  * @module content
  * @requires constants.js (manifest.jsonで先に読み込み)
- * @requires filter-utils.js (manifest.jsonで先に読み込み)
- * @requires seller-checker.js (manifest.jsonで先に読み込み)
+ * @requires brand-checker.js (manifest.jsonで先に読み込み)
+ * @requires title-checker.js (manifest.jsonで先に読み込み)
+ * @requires score-calculator.js (manifest.jsonで先に読み込み)
+ * @requires product-filter.js (manifest.jsonで先に読み込み)
  */
 
 (function() {
@@ -13,9 +15,14 @@
   /** @constant {string} ログプレフィックス */
   const LOG_PREFIX = '[CAS-Content]';
 
-  /** @constant {string} フィルターボタンID */
-  const FILTER_BUTTON_ID = 'cas-filter-button';
+  /** @type {MutationObserver|null} 商品監視用オブザーバー */
+  let productObserver = null;
 
+  /** @type {Object|null} フィルター設定のキャッシュ */
+  let filterConfigCache = null;
+
+  /** @type {number} 現在のフィルターレベル */
+  let currentFilterLevel = 2;
 
   /**
    * ログ出力ヘルパー
@@ -33,275 +40,279 @@
   }
 
   /**
-   * 設定を取得
-   * @returns {Promise<Object>} 設定オブジェクト
-   * @throws {Error} Chrome storage APIエラー
+   * Amazon検索結果ページかどうかを判定
+   * @returns {boolean} 検索結果ページの場合true
    */
-  async function getSettings() {
+  function isSearchResultsPage() {
+    const url = window.location.href;
+    return url.includes('/s?') || url.includes('/s/');
+  }
+
+  /**
+   * chrome.storage.localからフィルターレベルを取得
+   * @returns {Promise<number>} フィルターレベル (0-4)
+   */
+  async function getFilterLevel() {
     try {
-      return new Promise((resolve, reject) => {
-        chrome.storage.local.get(null, (result) => {
+      return new Promise((resolve) => {
+        chrome.storage.local.get(['filterLevel'], (result) => {
           if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
+            log('warn', 'Failed to get filterLevel:', chrome.runtime.lastError.message);
+            resolve(2); // デフォルト: STANDARD
           } else {
-            resolve(result);
+            // filterLevelが設定されていない場合はデフォルト値を使用
+            const level = typeof result.filterLevel === 'number' ? result.filterLevel : 2;
+            resolve(level);
           }
         });
       });
     } catch (error) {
-      log('error', 'Failed to get settings:', error);
-      // デフォルト設定を返す
-      return FilterUtils.getDefaultSettings();
+      log('error', 'Error getting filterLevel:', error);
+      return 2; // デフォルト: STANDARD
     }
   }
 
   /**
-   * 統計を更新
-   * @param {string} type - 統計タイプ
-   * @returns {Promise<void>}
+   * フィルター設定（信頼ブランド、疑わしいパターン）を読み込み
+   * @returns {Promise<Object>} 設定オブジェクト
    */
-  async function updateStats(type) {
+  async function loadFilterConfig() {
+    // キャッシュがあれば使用
+    if (filterConfigCache) {
+      return filterConfigCache;
+    }
+
     try {
-      await chrome.runtime.sendMessage({ action: 'updateStats', type });
+      // ProductFilterのメソッドを使用して設定を読み込み
+      if (typeof ProductFilter !== 'undefined') {
+        const [trustedBrands, suspiciousPatterns] = await Promise.all([
+          ProductFilter.loadTrustedBrands(),
+          ProductFilter.loadSuspiciousPatterns()
+        ]);
+
+        filterConfigCache = {
+          trustedBrands,
+          suspiciousPatterns
+        };
+
+        log('log', `Loaded config: ${trustedBrands.length} trusted brands, ${suspiciousPatterns.length} suspicious patterns`);
+        return filterConfigCache;
+      }
     } catch (error) {
-      log('warn', `Failed to update stats (${type}):`, error);
+      log('error', 'Failed to load filter config:', error);
+    }
+
+    // フォールバック: 空の設定
+    return {
+      trustedBrands: [],
+      suspiciousPatterns: []
+    };
+  }
+
+  /**
+   * フィルタリングを実行
+   * @returns {Promise<Object>} 統計情報
+   */
+  async function runFiltering() {
+    // ProductFilterが利用可能かチェック
+    if (typeof ProductFilter === 'undefined') {
+      log('error', 'ProductFilter is not available');
+      return { total: 0, hidden: 0, warned: 0, trusted: 0 };
+    }
+
+    // フィルターレベルを取得
+    currentFilterLevel = await getFilterLevel();
+    log('log', `Filter level: ${currentFilterLevel}`);
+
+    // フィルターがOFFの場合は何もしない
+    if (currentFilterLevel === 0) {
+      log('log', 'Filtering is disabled (level 0)');
+      return { total: 0, hidden: 0, warned: 0, trusted: 0 };
+    }
+
+    // フィルタリングを実行
+    const stats = await ProductFilter.run(currentFilterLevel);
+    log('log', 'Filtering complete:', stats);
+
+    // 統計情報をbackgroundに送信
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'updateFilterStats',
+        stats: stats
+      });
+    } catch (error) {
+      log('warn', 'Failed to send stats to background:', error);
+    }
+
+    return stats;
+  }
+
+  /**
+   * 新しく追加された商品要素をフィルタリング
+   * @param {Element} productElement - 商品のDOM要素
+   */
+  async function filterNewProduct(productElement) {
+    // 既に処理済みならスキップ
+    if (productElement.dataset.casProcessed) {
+      return;
+    }
+
+    // フィルターがOFFの場合は何もしない
+    if (currentFilterLevel === 0) {
+      return;
+    }
+
+    // ProductFilterが利用可能かチェック
+    if (typeof ProductFilter === 'undefined') {
+      return;
+    }
+
+    try {
+      // 設定を読み込み（キャッシュから）
+      const config = await loadFilterConfig();
+
+      // 商品情報を抽出
+      const productInfo = ProductFilter.extractProductInfo(productElement);
+
+      // スコアを計算
+      const scoreResult = ProductFilter.calculateScore(productInfo, config);
+
+      // フィルターを適用
+      ProductFilter.applyFilter(productElement, scoreResult, currentFilterLevel);
+
+      // 処理済みマークを付ける
+      productElement.dataset.casProcessed = 'true';
+    } catch (error) {
+      log('warn', 'Error filtering new product:', error);
     }
   }
 
   /**
-   * フィルターを適用してリダイレクト
-   * @param {string} [preset='standard'] - 使用するプリセット名
-   * @returns {void}
+   * MutationObserverで動的に追加される商品を監視
    */
-  function applyFilterAndRedirect(preset = 'standard') {
-    try {
-      const currentUrl = window.location.href;
+  function observeNewProducts() {
+    // 既にオブザーバーが設定されている場合はスキップ
+    if (productObserver) {
+      return;
+    }
 
-      // Amazon検索ページかチェック
-      if (!FilterUtils.isAmazonSearchPage(currentUrl)) {
-        log('warn', 'Not an Amazon search page, skipping filter');
-        return;
+    // 検索結果コンテナを探す
+    const container = document.querySelector('.s-main-slot') ||
+                      document.querySelector('[data-component-type="s-search-results"]') ||
+                      document.querySelector('.s-search-results');
+
+    if (!container) {
+      log('warn', 'Search results container not found for observation');
+      return;
+    }
+
+    // MutationObserverを設定
+    productObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+          // 追加されたノード自体が商品要素の場合
+          if (node.dataset && node.dataset.componentType === 's-search-result') {
+            filterNewProduct(node);
+            continue;
+          }
+
+          // 追加されたノード内の商品要素を検索
+          if (node.querySelectorAll) {
+            const products = node.querySelectorAll('[data-component-type="s-search-result"]');
+            for (const product of products) {
+              filterNewProduct(product);
+            }
+          }
+        }
       }
+    });
 
-      // 既に適用済みかチェック
-      if (FilterUtils.isFilterApplied(currentUrl, preset)) {
-        log('log', 'Filter already applied');
-        return;
-      }
+    // 監視を開始
+    productObserver.observe(container, {
+      childList: true,
+      subtree: true
+    });
 
-      // 新しいURLを生成
-      const newUrl = FilterUtils.applyFilter(currentUrl, preset);
+    log('log', 'Started observing for new products');
+  }
 
-      if (newUrl !== currentUrl) {
-        // 統計を更新（非同期で実行、エラーは無視）
-        updateStats('domestic');
-        updateStats('fba');
+  /**
+   * storage変更を監視してフィルターレベルの変更に対応
+   */
+  function watchStorageChanges() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return;
 
-        if (preset === 'premium') {
-          updateStats('rating');
+      if (changes.filterLevel) {
+        const newLevel = changes.filterLevel.newValue;
+        log('log', `Filter level changed: ${currentFilterLevel} -> ${newLevel}`);
+        currentFilterLevel = newLevel;
+
+        // ページを再フィルタリング
+        // 既存の処理済みマークとスタイルをリセット
+        const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+        for (const product of products) {
+          delete product.dataset.casProcessed;
+          product.classList.remove('cas-product-hidden', 'cas-product-dimmed');
+          const badge = product.querySelector('.cas-product-badge');
+          if (badge) badge.remove();
         }
 
-        log('log', 'Redirecting with filter applied');
-        window.location.href = newUrl;
+        // バナーを削除
+        const banner = document.getElementById('cas-filter-banner');
+        if (banner) {
+          banner.remove();
+          document.body.style.paddingTop = '';
+        }
+
+        // 再フィルタリング
+        runFiltering();
       }
-    } catch (error) {
-      log('error', 'Error applying filter:', error);
-    }
-  }
-
-  /**
-   * ページ内フィルターボタンを作成
-   * @returns {Promise<void>}
-   */
-  async function createPageButton() {
-    try {
-      // 既にボタンがある場合はスキップ
-      if (document.getElementById(FILTER_BUTTON_ID)) {
-        return;
-      }
-
-      // 検索結果のフィルターエリアを探す
-      const filterBar = document.querySelector('.s-desktop-toolbar') ||
-                        document.querySelector('[data-component-type="s-search-results"]');
-
-      if (!filterBar) {
-        log('warn', 'Filter bar not found, cannot create button');
-        return;
-      }
-
-      // 設定を取得
-      const settings = await getSettings();
-      const preset = settings.filterPreset || 'standard';
-      const isFiltered = FilterUtils.isFilterApplied(window.location.href, preset);
-
-      // ボタンを作成
-      const button = document.createElement('button');
-      button.id = FILTER_BUTTON_ID;
-      button.type = 'button';
-
-      // スタイルを設定
-      applyButtonStyles(button, isFiltered);
-
-      // イベントリスナーを設定
-      if (!isFiltered) {
-        button.addEventListener('mouseenter', () => handleButtonHover(button, true));
-        button.addEventListener('mouseleave', () => handleButtonHover(button, false));
-        button.addEventListener('click', handleButtonClick);
-      }
-
-      // コンテナを作成してボタンを挿入
-      const container = document.createElement('div');
-      container.style.cssText = 'padding: 10px; text-align: center;';
-      container.appendChild(button);
-
-      filterBar.parentNode.insertBefore(container, filterBar);
-      log('log', 'Filter button created');
-    } catch (error) {
-      log('error', 'Error creating page button:', error);
-    }
-  }
-
-  /**
-   * ボタンにスタイルを適用
-   * @param {HTMLButtonElement} button - ボタン要素
-   * @param {boolean} isFiltered - フィルター適用済みかどうか
-   */
-  function applyButtonStyles(button, isFiltered) {
-    if (isFiltered) {
-      button.innerHTML = '&#10003; 安心フィルター適用中';
-      button.style.cssText = `
-        background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: default;
-        margin: 10px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      `;
-      button.disabled = true;
-    } else {
-      button.innerHTML = '&#128737; 安心フィルターで再検索';
-      button.style.cssText = `
-        background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        margin: 10px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        transition: transform 0.2s, box-shadow 0.2s;
-      `;
-    }
-  }
-
-  /**
-   * ボタンホバー時の処理
-   * @param {HTMLButtonElement} button - ボタン要素
-   * @param {boolean} isHover - ホバー中かどうか
-   */
-  function handleButtonHover(button, isHover) {
-    if (isHover) {
-      button.style.transform = 'translateY(-2px)';
-      button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
-    } else {
-      button.style.transform = 'translateY(0)';
-      button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-    }
-  }
-
-  /**
-   * ボタンクリック時の処理
-   * @returns {Promise<void>}
-   */
-  async function handleButtonClick() {
-    try {
-      const settings = await getSettings();
-      applyFilterAndRedirect(settings.filterPreset || 'standard');
-    } catch (error) {
-      log('error', 'Error handling button click:', error);
-    }
-  }
-
-  /**
-   * セラーチェック通知を表示
-   * @param {Object} settings - 設定オブジェクト
-   */
-  function showSellerCheckNotice(settings) {
-    if (settings.sellerCheck === false) return;
-
-    const existingNotice = document.getElementById('cas-seller-notice');
-    if (existingNotice) return;
-
-    const notice = document.createElement('div');
-    notice.id = 'cas-seller-notice';
-    notice.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 16px;">🛡️</span>
-        <div>
-          <strong>海外セラー判定ON</strong>
-          <span style="color: #555; margin-left: 8px;">商品をクリックすると、販売元の国を自動チェックします</span>
-        </div>
-      </div>
-    `;
-    notice.style.cssText = `
-      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-      border: 1px solid #4CAF50;
-      border-radius: 8px;
-      padding: 10px 16px;
-      margin: 12px 0;
-      font-size: 13px;
-      color: #1b5e20;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    `;
-
-    const filterBar = document.querySelector('.s-desktop-toolbar') ||
-                      document.querySelector('[data-component-type="s-search-results"]');
-    if (filterBar) {
-      filterBar.parentNode.insertBefore(notice, filterBar);
-    }
+    });
   }
 
   /**
    * 初期化処理
-   * @returns {Promise<void>}
    */
   async function init() {
     try {
-      const settings = await getSettings();
-      const preset = settings.filterPreset || 'standard';
+      log('log', 'Initializing content script...');
+
+      // 検索結果ページでない場合は終了
+      if (!isSearchResultsPage()) {
+        log('log', 'Not a search results page, skipping');
+        return;
+      }
+
+      // DOM読み込み完了を待つ
+      if (document.readyState === 'loading') {
+        await new Promise(resolve => {
+          document.addEventListener('DOMContentLoaded', resolve);
+        });
+      }
+
+      // 少し待機して商品要素が読み込まれるのを待つ
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // フィルタリングを実行
+      await runFiltering();
+
+      // 新しい商品の監視を開始
+      observeNewProducts();
+
+      // storage変更を監視
+      watchStorageChanges();
 
       // アイコン状態を更新
-      const isFiltered = FilterUtils.isFilterApplied(window.location.href, preset);
-
       try {
-        await chrome.runtime.sendMessage({ action: 'updateIconState', isFiltered });
+        await chrome.runtime.sendMessage({
+          action: 'updateIconState',
+          isFiltered: currentFilterLevel > 0
+        });
       } catch (error) {
         log('warn', 'Failed to update icon state:', error);
-      }
-
-      // ページ内ボタンを表示
-      if (settings.showPageButton !== false) {
-        // DOM読み込み後に実行
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', createPageButton);
-        } else {
-          await createPageButton();
-        }
-      }
-
-      // セラーチェック通知を表示
-      if (settings.sellerCheck !== false) {
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => showSellerCheckNotice(settings));
-        } else {
-          showSellerCheckNotice(settings);
-        }
       }
 
       log('log', 'Initialization complete');
@@ -312,24 +323,46 @@
 
   /**
    * メッセージハンドラ
-   * @param {Object} message - メッセージオブジェクト
-   * @param {chrome.runtime.MessageSender} sender - 送信者情報
-   * @param {function} sendResponse - レスポンス送信関数
-   * @returns {boolean} 非同期レスポンスの場合true
    */
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       switch (message.action) {
-        case 'applyFilter':
-          applyFilterAndRedirect(message.preset || 'standard');
-          sendResponse({ success: true });
+        case 'runFiltering':
+          // フィルタリングを再実行
+          runFiltering().then(stats => {
+            sendResponse({ success: true, stats });
+          }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+          return true; // 非同期レスポンス
+
+        case 'getFilterStats':
+          // 現在の統計情報を返す
+          const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+          const hidden = document.querySelectorAll('.cas-product-hidden').length;
+          const warned = document.querySelectorAll('.cas-product-dimmed').length;
+          const trusted = document.querySelectorAll('[data-cas-badge="trusted"]').length;
+          sendResponse({
+            success: true,
+            stats: {
+              total: products.length,
+              hidden,
+              warned,
+              trusted
+            }
+          });
           break;
 
-        case 'autoApplyFilter':
-          // 自動適用（既に適用済みでなければ）
-          const currentUrl = window.location.href;
-          if (!FilterUtils.isFilterApplied(currentUrl, message.preset)) {
-            applyFilterAndRedirect(message.preset);
+        case 'showAllProducts':
+          // 非表示の商品をすべて表示
+          if (typeof ProductFilter !== 'undefined') {
+            ProductFilter.showAllProducts();
+            // バナーを削除
+            const banner = document.getElementById('cas-filter-banner');
+            if (banner) {
+              banner.remove();
+              document.body.style.paddingTop = '';
+            }
           }
           sendResponse({ success: true });
           break;
@@ -342,7 +375,7 @@
       sendResponse({ success: false, error: error.message });
     }
 
-    return true;
+    return false;
   });
 
   // 初期化実行
