@@ -87,7 +87,7 @@ const ProductFilter = {
       background: rgba(255, 255, 255, 0.3);
     }
     .cas-product-badge {
-      display: inline-flex !important;
+      display: flex !important;
       align-items: center !important;
       gap: 6px !important;
       padding: 8px 14px !important;
@@ -98,6 +98,9 @@ const ProductFilter = {
       line-height: 1.4 !important;
       z-index: 100 !important;
       position: relative !important;
+      width: fit-content !important;
+      overflow: visible !important;
+      clear: both !important;
     }
     .cas-product-badge-trusted {
       background: #d4edda !important;
@@ -734,14 +737,31 @@ const ProductFilter = {
       ${reasonsText ? `<span class="cas-product-badge-reasons">| ${reasonsText}</span>` : ''}
     `;
 
-    // タイトル要素の後に挿入
-    const titleElement = productElement.querySelector('h2');
-    if (titleElement) {
-      titleElement.parentNode.insertBefore(badge, titleElement.nextSibling);
+    // タイトルセクションの後（Aタグの外側）に挿入
+    // overflow: hiddenの親要素を避けるため、タイトル行全体の後に挿入
+    const titleSection = productElement.querySelector('.s-title-instructions-style') ||
+                         productElement.querySelector('.a-section.a-spacing-none.a-spacing-top-small') ||
+                         productElement.querySelector('h2')?.closest('.a-section');
+
+    if (titleSection && titleSection.parentNode) {
+      titleSection.parentNode.insertBefore(badge, titleSection.nextSibling);
     } else {
-      // タイトルが見つからない場合は先頭に挿入
-      const firstChild = productElement.querySelector('.s-inner-result-item') || productElement;
-      firstChild.insertBefore(badge, firstChild.firstChild);
+      // フォールバック: 価格の前に挿入を試みる
+      const priceSection = productElement.querySelector('.a-price') ||
+                           productElement.querySelector('.a-row.a-size-base');
+      if (priceSection && priceSection.parentNode) {
+        priceSection.parentNode.insertBefore(badge, priceSection);
+      } else {
+        // 最終フォールバック: 商品カードの内側に直接挿入
+        const innerContent = productElement.querySelector('.puis-padding-left-small') ||
+                             productElement.querySelector('.s-inner-result-item') ||
+                             productElement;
+        if (innerContent.firstChild) {
+          innerContent.insertBefore(badge, innerContent.firstChild);
+        } else {
+          innerContent.appendChild(badge);
+        }
+      }
     }
 
     // データ属性を設定
