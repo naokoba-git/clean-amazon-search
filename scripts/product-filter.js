@@ -394,18 +394,34 @@ const ProductFilter = {
   },
 
   /**
+   * 現在の統計情報を保存（モード切替時の復元用）
+   * @type {{total: number, hidden: number, warned: number, trusted: number}|null}
+   */
+  currentStats: null,
+
+  /**
+   * 現在のバナーモード
+   * @type {'filtered'|'trusted'|'all'}
+   */
+  bannerMode: 'filtered',
+
+  /**
    * フィルターバナーを追加
    * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
    */
   addFilterBanner(stats) {
+    // 統計情報を保存
+    this.currentStats = stats;
+    this.bannerMode = 'filtered';
+
     // 既存のバナーを削除
     const existingBanner = document.getElementById('cas-filter-banner');
     if (existingBanner) {
       existingBanner.remove();
     }
 
-    // 非表示商品がない場合はバナーを表示しない
-    if (stats.hidden === 0) {
+    // 非表示・警告・信頼ブランドがない場合はバナー不要
+    if (stats.hidden === 0 && stats.warned === 0 && stats.trusted === 0) {
       return;
     }
 
@@ -417,24 +433,46 @@ const ProductFilter = {
     banner.id = 'cas-filter-banner';
     banner.className = 'cas-filter-banner';
 
-    const messageText = `${stats.hidden}件の怪しい商品を非表示中`;
+    document.body.insertBefore(banner, document.body.firstChild);
+
+    // 通常フィルタモードでバナーを表示
+    this.renderFilteredBanner(banner, stats);
+  },
+
+  /**
+   * 通常フィルタモードのバナーを描画
+   * @param {Element} banner - バナー要素
+   * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
+   */
+  renderFilteredBanner(banner, stats) {
+    this.bannerMode = 'filtered';
+
+    const messageText = stats.hidden > 0 ? `${stats.hidden}件の怪しい商品を非表示中` : 'フィルタ適用中';
     const detailText = stats.warned > 0 ? ` | ${stats.warned}件に警告表示` : '';
-    const trustedText = stats.trusted > 0 ? ` | <a href="#" id="cas-show-trusted-only" style="color: #90EE90; text-decoration: underline; cursor: pointer;">${stats.trusted}件の信頼ブランド</a>` : '';
+    const trustedText = stats.trusted > 0
+      ? ` | <a href="#" id="cas-show-trusted-only" style="color: #90EE90; text-decoration: underline; cursor: pointer;">${stats.trusted}件の信頼ブランド</a>`
+      : '';
 
     banner.innerHTML = `
       <span class="cas-filter-banner-icon">&#128737;</span>
       <span>${messageText}${detailText}${trustedText}</span>
-      <button class="cas-filter-banner-close" id="cas-banner-close">閉じる</button>
       <button class="cas-filter-banner-close" id="cas-banner-show-all">すべて表示</button>
-      <button class="cas-filter-banner-close" id="cas-banner-trusted-only">信頼のみ</button>
+      <button class="cas-filter-banner-close" id="cas-banner-close">閉じる</button>
     `;
-
-    document.body.insertBefore(banner, document.body.firstChild);
 
     // ページのpaddingを調整
     document.body.style.paddingTop = `${banner.offsetHeight}px`;
 
-    // 閉じるボタンのイベント
+    this.attachFilteredBannerEvents(banner, stats);
+  },
+
+  /**
+   * 通常フィルタモードのイベントを設定
+   * @param {Element} banner - バナー要素
+   * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
+   */
+  attachFilteredBannerEvents(banner, stats) {
+    // 閉じるボタン
     const closeBtn = document.getElementById('cas-banner-close');
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
@@ -443,22 +481,12 @@ const ProductFilter = {
       });
     }
 
-    // すべて表示ボタンのイベント
+    // すべて表示ボタン
     const showAllBtn = document.getElementById('cas-banner-show-all');
     if (showAllBtn) {
       showAllBtn.addEventListener('click', () => {
         this.showAllProducts();
-        banner.remove();
-        document.body.style.paddingTop = '';
-      });
-    }
-
-    // 信頼ブランドのみ表示ボタンのイベント
-    const trustedOnlyBtn = document.getElementById('cas-banner-trusted-only');
-    if (trustedOnlyBtn) {
-      trustedOnlyBtn.addEventListener('click', () => {
-        this.showTrustedOnly();
-        this.updateBannerForTrustedMode(banner);
+        this.renderAllProductsBanner(banner, stats);
       });
     }
 
@@ -468,7 +496,108 @@ const ProductFilter = {
       trustedLink.addEventListener('click', (e) => {
         e.preventDefault();
         this.showTrustedOnly();
-        this.updateBannerForTrustedMode(banner);
+        this.renderTrustedBanner(banner, stats);
+      });
+    }
+  },
+
+  /**
+   * 信頼ブランドのみモードのバナーを描画
+   * @param {Element} banner - バナー要素
+   * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
+   */
+  renderTrustedBanner(banner, stats) {
+    this.bannerMode = 'trusted';
+    const totalCount = stats.total;
+
+    banner.innerHTML = `
+      <span class="cas-filter-banner-icon" style="color: #90EE90;">&#10003;</span>
+      <span style="color: #90EE90;">信頼ブランドのみ表示中（${stats.trusted}件 / 全${totalCount}件）</span>
+      <button class="cas-filter-banner-close" id="cas-banner-normal-filter">通常フィルタ</button>
+      <button class="cas-filter-banner-close" id="cas-banner-show-all">すべて表示</button>
+      <button class="cas-filter-banner-close" id="cas-banner-close">閉じる</button>
+    `;
+
+    document.body.style.paddingTop = `${banner.offsetHeight}px`;
+
+    this.attachTrustedBannerEvents(banner, stats);
+  },
+
+  /**
+   * 信頼モードのイベントを設定
+   * @param {Element} banner - バナー要素
+   * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
+   */
+  attachTrustedBannerEvents(banner, stats) {
+    // 閉じるボタン
+    const closeBtn = document.getElementById('cas-banner-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        banner.remove();
+        document.body.style.paddingTop = '';
+      });
+    }
+
+    // 通常フィルタボタン
+    const normalFilterBtn = document.getElementById('cas-banner-normal-filter');
+    if (normalFilterBtn) {
+      normalFilterBtn.addEventListener('click', () => {
+        this.restoreFilteredMode();
+        this.renderFilteredBanner(banner, stats);
+      });
+    }
+
+    // すべて表示ボタン
+    const showAllBtn = document.getElementById('cas-banner-show-all');
+    if (showAllBtn) {
+      showAllBtn.addEventListener('click', () => {
+        this.showAllProducts();
+        this.renderAllProductsBanner(banner, stats);
+      });
+    }
+  },
+
+  /**
+   * すべて表示モードのバナーを描画
+   * @param {Element} banner - バナー要素
+   * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
+   */
+  renderAllProductsBanner(banner, stats) {
+    this.bannerMode = 'all';
+
+    banner.innerHTML = `
+      <span class="cas-filter-banner-icon" style="color: #FFD700;">&#9888;</span>
+      <span style="color: #FFD700;">フィルターOFF - すべての商品を表示中（全${stats.total}件）</span>
+      <button class="cas-filter-banner-close" id="cas-banner-apply-filter">フィルタ適用</button>
+      <button class="cas-filter-banner-close" id="cas-banner-close">閉じる</button>
+    `;
+
+    document.body.style.paddingTop = `${banner.offsetHeight}px`;
+
+    this.attachAllProductsBannerEvents(banner, stats);
+  },
+
+  /**
+   * すべて表示モードのイベントを設定
+   * @param {Element} banner - バナー要素
+   * @param {{total: number, hidden: number, warned: number, trusted: number}} stats - 統計情報
+   */
+  attachAllProductsBannerEvents(banner, stats) {
+    // 閉じるボタン
+    const closeBtn = document.getElementById('cas-banner-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        banner.remove();
+        document.body.style.paddingTop = '';
+      });
+    }
+
+    // フィルタ適用ボタン
+    const applyFilterBtn = document.getElementById('cas-banner-apply-filter');
+    if (applyFilterBtn) {
+      applyFilterBtn.addEventListener('click', () => {
+        this.applyFilterMode();
+        this.renderFilteredBanner(banner, stats);
       });
     }
   },
@@ -478,70 +607,73 @@ const ProductFilter = {
    */
   showTrustedOnly() {
     const products = document.querySelectorAll('[data-component-type="s-search-result"]');
-    let trustedCount = 0;
-    let hiddenCount = 0;
 
     for (const product of products) {
       const badge = product.querySelector('.cas-product-badge-trusted');
       if (badge) {
         // 信頼ブランドは表示
-        product.classList.remove('cas-product-hidden', 'cas-trusted-hidden');
-        trustedCount++;
+        product.classList.remove('cas-product-hidden', 'cas-trusted-hidden', 'cas-all-visible');
       } else {
         // それ以外は非表示
         product.classList.add('cas-trusted-hidden');
-        hiddenCount++;
+        product.classList.remove('cas-all-visible');
       }
     }
 
-    console.log(`[ProductFilter] Trusted only mode: showing ${trustedCount}, hiding ${hiddenCount}`);
+    console.log('[ProductFilter] Switched to trusted-only mode');
   },
 
   /**
-   * 信頼モード時のバナー更新
-   * @param {Element} banner - バナー要素
+   * 通常フィルタモードに復元
    */
-  updateBannerForTrustedMode(banner) {
+  restoreFilteredMode() {
     const products = document.querySelectorAll('[data-component-type="s-search-result"]');
-    const trustedCount = document.querySelectorAll('.cas-product-badge-trusted').length;
-    const totalCount = products.length;
 
-    banner.innerHTML = `
-      <span class="cas-filter-banner-icon">&#10003;</span>
-      <span style="color: #90EE90;">信頼ブランドのみ表示中（${trustedCount}件 / ${totalCount}件）</span>
-      <button class="cas-filter-banner-close" id="cas-banner-show-all-from-trusted">通常表示に戻す</button>
-    `;
+    for (const product of products) {
+      // 信頼モードの非表示を解除
+      product.classList.remove('cas-trusted-hidden', 'cas-all-visible');
 
-    // 通常表示に戻すボタン
-    const showAllFromTrusted = document.getElementById('cas-banner-show-all-from-trusted');
-    if (showAllFromTrusted) {
-      showAllFromTrusted.addEventListener('click', () => {
-        this.restoreFromTrustedMode();
-        banner.remove();
-        document.body.style.paddingTop = '';
-      });
+      // 元のhidden状態を復元
+      if (product.dataset.casHidden === 'true') {
+        product.classList.add('cas-product-hidden');
+      }
     }
+
+    console.log('[ProductFilter] Restored to filtered mode');
   },
 
   /**
-   * 信頼モードから通常モードに復元
+   * フィルタを再適用
    */
-  restoreFromTrustedMode() {
-    const hiddenByTrusted = document.querySelectorAll('.cas-trusted-hidden');
-    for (const product of hiddenByTrusted) {
-      product.classList.remove('cas-trusted-hidden');
+  applyFilterMode() {
+    const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+
+    for (const product of products) {
+      // すべて表示モードの解除
+      product.classList.remove('cas-trusted-hidden', 'cas-all-visible');
+
+      // 元のhidden状態を復元
+      if (product.dataset.casHidden === 'true') {
+        product.classList.add('cas-product-hidden');
+      }
     }
+
+    console.log('[ProductFilter] Applied filter mode');
   },
 
   /**
    * 非表示の商品をすべて表示
    */
   showAllProducts() {
-    const hiddenProducts = document.querySelectorAll('.cas-product-hidden');
-    for (const product of hiddenProducts) {
-      product.classList.remove('cas-product-hidden');
-      delete product.dataset.casHidden;
+    const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+
+    for (const product of products) {
+      // すべての非表示クラスを解除（ただしcasHiddenは保持）
+      product.classList.remove('cas-product-hidden', 'cas-trusted-hidden');
+      product.classList.add('cas-all-visible');
     }
+
+    console.log('[ProductFilter] Showing all products');
   },
 
   /**
