@@ -47,11 +47,18 @@
         "examples": ["AB123", "XY99", "QW12AB", "ZX999"]
       },
       {
-        "id": "chinese_characters_brand",
-        "pattern": "^[\\u4e00-\\u9fff]{2,}$",
-        "description": "中国語のみのブランド名",
+        "id": "chinese_company_suffix",
+        "pattern": "^[\\u4e00-\\u9fff]*(?:科技|电子|贸易|商贸|实业|集团|有限公司)$",
+        "description": "中国企業の接尾辞を含むブランド名",
+        "score": 25,
+        "examples": ["深圳科技", "广州电子", "某某贸易"]
+      },
+      {
+        "id": "simplified_chinese_brand",
+        "pattern": "[\\u4e07\\u4e1c\\u4e2a\\u4e49\\u4e50\\u4e60\\u4e66\\u4e70\\u4ea7\\u4eba\\u4ec5\\u4ece\\u4f17\\u4f1a\\u4f20\\u4f24\\u5173\\u5174\\u519c\\u51b2\\u51c6\\u51cf\\u51e0\\u521b\\u522b\\u5236\\u52a1\\u52a8\\u5386\\u5389\\u538b\\u53bf\\u53d1\\u53ea\\u5408\\u5434\\u5446\\u545c\\u54cd\\u5565\\u573a\\u5757\\u575a\\u58f0\\u5904\\u5907\\u5934\\u5939\\u593a\\u5956\\u5965\\u5973\\u5986\\u5b66\\u5b9d\\u5b9e\\u5ba1\\u5bfc\\u5c06\\u5c38\\u5c42\\u5c4a\\u5e01\\u5e03\\u5e08\\u5e26\\u5e72\\u5f00\\u5f02\\u5f20\\u5f52\\u5f53\\u5f55\\u6001\\u6076\\u620f\\u6218\\u622a\\u62a4\\u62c5\\u631a\\u6362\\u636e\\u6570\\u65e0\\u65f6\\u65e7\\u6761\\u6765\\u6768\\u67aa\\u67dc\\u6807\\u680b\\u6863\\u6865\\u68c0\\u6b22\\u6b8b\\u6bd5\\u706d\\u70b9\\u7075\\u7237\\u7247\\u72b6\\u72ec\\u739b\\u73b0\\u7406\\u74f6\\u751f\\u7535\\u76d6\\u786e\\u79bb\\u7a0b\\u7a7a\\u7b80\\u7ed3\\u7edf\\u7eff\\u8054\\u8083\\u80dc\\u8111\\u8282\\u82cf\\u8366\\u836f\\u8425\\u89c2\\u89c4\\u89c6\\u89e6\\u8ba1\\u8ba4\\u8ba8\\u8bb0\\u8bc1\\u8be2\\u8be5\\u8bef\\u8bf4\\u8bf7\\u8bfb\\u8c03\\u8d1d\\u8d27\\u8d28\\u8d2d\\u8d34\\u8d38\\u8d39\\u8d44\\u8f66\\u8f6c\\u8f7b\\u8fbe\\u8fd0\\u8fdb\\u8fde\\u9009\\u901a\\u9093\\u90ae\\u91cc\\u94a6\\u94c1\\u94f6\\u9500\\u952e\\u95e8\\u9605\\u9635\\u9636\\u9648\\u9669\\u96be\\u97e9\\u9875\\u9884\\u9a6c\\u9a8c\\u9c7c\\u9e21\\u9ec4\\u9f99]",
+        "description": "簡体字を含むブランド名（中国ブランドの可能性）",
         "score": 20,
-        "examples": ["深圳科技", "广州电子"]
+        "examples": ["华为", "阿里巴巴", "腾讯"]
       },
       {
         "id": "mixed_case_random",

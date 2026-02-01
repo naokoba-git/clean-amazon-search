@@ -36,6 +36,13 @@ const BrandChecker = {
   GENERIC_PATTERN: /^(ノーブランド|ノーブランド品|Generic|Unbranded|no brand)$/i,
 
   /**
+   * 日本語の会社名によく使われる接尾辞
+   * これらで終わる漢字のみのブランド名は日本ブランドとして扱う
+   * @type {RegExp}
+   */
+  JAPANESE_SUFFIX_PATTERN: /(?:工房|製作所|商店|本舗|堂|屋|庵|軒|亭|園|房|舎|社|館|苑|荘|家|処|所|店|坊|塾|院|会|組|座|派|流|窯|焼|塗|織|染|彫|細工|木工|鋳物|刃物|金物|漆器|陶器|硝子|ガラス|鍛冶|職人|工芸|民芸|伝統)$/,
+
+  /**
    * デフォルトのスコア設定
    * @type {Object}
    */
@@ -75,6 +82,14 @@ const BrandChecker = {
       return {
         score: this.DEFAULT_SCORES.trusted,
         reasons: ['信頼できるブランド']
+      };
+    }
+
+    // 日本ブランドの可能性チェック（漢字のみ + 日本語接尾辞）
+    if (this.isLikelyJapaneseBrand(normalizedName)) {
+      return {
+        score: -30, // 軽い信頼ボーナス
+        reasons: ['日本の工房・製作所']
       };
     }
 
@@ -166,6 +181,40 @@ const BrandChecker = {
    */
   hasJpSuffix(brandName) {
     return this.JP_SUFFIX_PATTERN.test(brandName);
+  },
+
+  /**
+   * 日本語の会社名接尾辞を持つかを判定
+   * @param {string} brandName - ブランド名
+   * @returns {boolean} 日本語の接尾辞を持つ場合true
+   */
+  hasJapaneseSuffix(brandName) {
+    return this.JAPANESE_SUFFIX_PATTERN.test(brandName);
+  },
+
+  /**
+   * 漢字のみで構成されているかを判定
+   * @param {string} brandName - ブランド名
+   * @returns {boolean} 漢字のみの場合true
+   */
+  isKanjiOnly(brandName) {
+    // CJK統合漢字の範囲
+    return /^[\u4e00-\u9fff]+$/.test(brandName);
+  },
+
+  /**
+   * 日本ブランドとして信頼できるかを判定
+   * 漢字のみで日本語の接尾辞を持つブランドは日本ブランドとして扱う
+   * @param {string} brandName - ブランド名
+   * @returns {boolean} 日本ブランドとして信頼できる場合true
+   */
+  isLikelyJapaneseBrand(brandName) {
+    if (!brandName) return false;
+    // 漢字のみで構成され、日本語の接尾辞を持つ場合
+    if (this.isKanjiOnly(brandName) && this.hasJapaneseSuffix(brandName)) {
+      return true;
+    }
+    return false;
   },
 
   /**
