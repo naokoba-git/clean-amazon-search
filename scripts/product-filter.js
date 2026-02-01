@@ -311,9 +311,11 @@ const ProductFilter = {
     // 既存のバッジを削除
     this.removeBadge(productElement);
 
-    // 信頼ブランドの場合
+    // 信頼ブランドの場合（バッジは表示しないが、内部的にマーク）
     if (isTrusted) {
-      this.addProductBadge(productElement, this.BADGE_TYPES.TRUSTED, reasons);
+      // バッジは表示せず、data属性でマークのみ
+      productElement.dataset.casTrusted = 'true';
+      productElement.classList.add('cas-product-trusted');
       productElement.classList.remove('cas-product-hidden', 'cas-product-dimmed');
       return 'trusted';
     }
@@ -510,9 +512,12 @@ const ProductFilter = {
     this.bannerMode = 'trusted';
     const totalCount = stats.total;
 
+    // 実際に表示されている信頼ブランド数をカウント
+    const visibleTrusted = document.querySelectorAll('.cas-product-trusted:not(.cas-trusted-hidden)').length;
+
     banner.innerHTML = `
       <span class="cas-filter-banner-icon" style="color: #90EE90;">&#10003;</span>
-      <span style="color: #90EE90;">信頼ブランドのみ表示中（${stats.trusted}件 / 全${totalCount}件）</span>
+      <span style="color: #90EE90;">信頼ブランドのみ表示中（${visibleTrusted}件 / 全${totalCount}件）</span>
       <button class="cas-filter-banner-close" id="cas-banner-normal-filter">通常フィルタ</button>
       <button class="cas-filter-banner-close" id="cas-banner-show-all">すべて表示</button>
       <button class="cas-filter-banner-close" id="cas-banner-close">閉じる</button>
@@ -609,8 +614,10 @@ const ProductFilter = {
     const products = document.querySelectorAll('[data-component-type="s-search-result"]');
 
     for (const product of products) {
-      const badge = product.querySelector('.cas-product-badge-trusted');
-      if (badge) {
+      // data属性またはクラスで信頼ブランドを判定
+      const isTrusted = product.dataset.casTrusted === 'true' ||
+                        product.classList.contains('cas-product-trusted');
+      if (isTrusted) {
         // 信頼ブランドは表示
         product.classList.remove('cas-product-hidden', 'cas-trusted-hidden', 'cas-all-visible');
       } else {
