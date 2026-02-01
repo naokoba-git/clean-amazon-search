@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "schema_version": "1.0",
+  "metadata": {
+    "name": "Suspicious Patterns Definition",
+    "description": "怪しいブランド・商品を検出するためのパターン定義",
+    "author": "Clean Amazon Search",
+    "last_updated": "2026-02-01"
+  },
+  "brand_patterns": {
+    "description": "怪しいブランド名を検出する正規表現パターン",
+    "patterns": [
+      {
+        "id": "consonants_only",
+        "pattern": "^[BCDFGHJKLMNPQRSTVWXYZbcdfghjklmnpqrstvwxyz]{4,}$",
+        "description": "子音のみ4文字以上（例: BKPH, XRDT, GVNM）",
+        "score": 30,
+        "examples": ["BKPH", "XRDT", "GVNM", "LRTQ"]
+      },
+      {
+        "id": "uppercase_long",
+        "pattern": "^[A-Z]{6,}$",
+        "description": "大文字のみ6文字以上（例: QWERTZ, ASDFGH）",
+        "score": 25,
+        "examples": ["QWERTZ", "ASDFGH", "ZXCVBN", "LKJHGF"]
+      },
+      {
+        "id": "suffix_jp",
+        "pattern": "^.+(?:JP|Jp|jp)$",
+        "description": "末尾がJP（例: BrandJP, RandomJP）",
+        "score": 15,
+        "examples": ["HogeJP", "TechJP", "ShopJP"]
+      },
+      {
+        "id": "suffix_japan",
+        "pattern": "^.+(?:Japan|JAPAN|japan)$",
+        "description": "末尾がJapan（例: NoNameJapan）",
+        "score": 15,
+        "examples": ["NoNameJapan", "TechJapan", "ShopJAPAN"]
+      },
+      {
+        "id": "random_alphanumeric",
+        "pattern": "^[A-Z]{2,4}[0-9]{2,4}[A-Z]{0,2}$",
+        "description": "ランダムな英数字の組み合わせ（例: AB123, XY99Z）",
+        "score": 35,
+        "examples": ["AB123", "XY99", "QW12AB", "ZX999"]
+      },
+      {
+        "id": "chinese_characters_brand",
+        "pattern": "^[\\u4e00-\\u9fff]{2,}$",
+        "description": "中国語のみのブランド名",
+        "score": 20,
+        "examples": ["深圳科技", "广州电子"]
+      },
+      {
+        "id": "mixed_case_random",
+        "pattern": "^(?:[A-Z][a-z]){3,}$",
+        "description": "大文字小文字が交互（例: AbCdEf）",
+        "score": 20,
+        "examples": ["AbCdEf", "XyZaB"]
+      },
+      {
+        "id": "double_letters",
+        "pattern": "^[A-Za-z]*([A-Za-z])\\1{2,}[A-Za-z]*$",
+        "description": "同じ文字が3回以上連続（例: BRRRAND）",
+        "score": 15,
+        "examples": ["BRRRAND", "Cooool", "Niiiice"]
+      }
+    ]
+  },
+  "no_brand_keywords": {
+    "description": "ノーブランド・ジェネリック商品を示すキーワード",
+    "keywords": [
+      "ノーブランド",
+      "ノーブランド品",
+      "Generic",
+      "GENERIC",
+      "Unbranded",
+      "UNBRANDED",
+      "N/B",
+      "NB品",
+      "ジェネリック",
+      "汎用",
+      "汎用品",
+      "互換品",
+      "非純正",
+      "社外品",
+      "OEM",
+      "ODM",
+      "無印",
+      "メーカー不明",
+      "ブランドなし",
+      "No Brand",
+      "No-Brand",
+      "Nobrand",
+      "unknown brand",
+      "UNKNOWN",
+      "その他ブランド",
+      "Other Brand"
+    ],
+    "score": 40
+  },
+  "title_exaggerations": {
+    "description": "商品タイトルの誇張表現・怪しいキーワード",
+    "categories": {
+      "year_latest": {
+        "description": "年号付き最新表現",
+        "keywords": [
+          "2024最新",
+          "2024年最新",
+          "2024新型",
+          "2024年版",
+          "2024年モデル",
+          "2025最新",
+          "2025年最新",
+          "2025新型",
+          "2025年版",
+          "2025年モデル",
+          "2026最新",
+          "2026年最新",
+          "令和最新",
+          "令和最新版",
+          "令和6年最新",
+          "今年最新"
+        ],
+        "score": 25
+      },
+      "superlatives": {
+        "description": "最上級・誇大表現",
+        "keywords": [
+          "業界トップ",
+          "業界最高",
+          "業界最強",
+          "業界初",
+          "史上最強",
+          "史上最高",
+          "世界初",
+          "世界最強",
+          "世界最高",
+          "最強",
+          "最高級",
+          "最上位",
+          "究極",
+          "究極の",
+          "神コスパ",
+          "激安",
+          "爆安",
+          "超激安",
+          "驚きの安さ",
+          "コスパ最強",
+          "コスパ抜群",
+          "圧倒的",
+          "驚異の",
+          "驚きの",
+          "革命的",
+          "革新的"
+        ],
+        "score": 20
+      },
+      "upgraded_version": {
+        "description": "進化版・改良版表現",
+        "keywords": [
+          "進化版",
+          "改良版",
+          "改善版",
+          "強化版",
+          "アップグレード版",
+          "新進化",
+          "超進化",
+          "大幅改良",
+          "完全版",
+          "決定版",
+          "最終版",
+          "プロ版",
+          "プレミアム版"
+        ],
+        "score": 15
+      },
+      "fake_certifications": {
+        "description": "怪しい認証・ランキング表現",
+        "keywords": [
+          "Amazon1位",
+          "ランキング1位",
+          "売上1位",
+          "人気No.1",
+          "人気ナンバーワン",
+          "楽天1位",
+          "TV紹介",
+          "テレビで紹介",
+          "雑誌掲載",
+          "メディア掲載",
+          "芸能人愛用",
+          "有名人愛用",
+          "プロ仕様",
+          "業務用",
+          "サロン専売",
+          "正規品",
+          "本物保証"
+        ],
+        "score": 20
+      },
+      "urgency_pressure": {
+        "description": "緊急性・限定感を煽る表現",
+        "keywords": [
+          "期間限定",
+          "数量限定",
+          "在庫限り",
+          "在庫わずか",
+          "残りわずか",
+          "今だけ",
+          "本日限定",
+          "タイムセール",
+          "緊急値下げ",
+          "特別価格",
+          "特価",
+          "限定特価",
+          "セール中",
+          "値下げ中",
+          "お買い得",
+          "大特価"
+        ],
+        "score": 10
+      },
+      "quality_claims": {
+        "description": "根拠不明の品質主張",
+        "keywords": [
+          "高品質",
+          "高級品",
+          "高級素材",
+          "プレミアム素材",
+          "職人",
+          "匠の技",
+          "日本品質",
+          "日本製品質",
+          "軍用",
+          "軍事規格",
+          "航空機グレード",
+          "宇宙開発技術",
+          "NASAが認めた",
+          "医療用",
+          "医療グレード"
+        ],
+        "score": 15
+      },
+      "excessive_features": {
+        "description": "機能の過剰アピール",
+        "keywords": [
+          "多機能",
+          "超多機能",
+          "オールインワン",
+          "万能",
+          "全対応",
+          "完全対応",
+          "全機種対応",
+          "ユニバーサル",
+          "全てに対応",
+          "あらゆる"
+        ],
+        "score": 10
+      }
+    }
+  },
+  "scoring": {
+    "description": "判定スコアの設定",
+    "thresholds": {
+      "safe": {
+        "max": 20,
+        "label": "安全",
+        "color": "#4CAF50"
+      },
+      "caution": {
+        "min": 21,
+        "max": 50,
+        "label": "注意",
+        "color": "#FFC107"
+      },
+      "warning": {
+        "min": 51,
+        "max": 80,
+        "label": "警告",
+        "color": "#FF9800"
+      },
+      "danger": {
+        "min": 81,
+        "label": "危険",
+        "color": "#F44336"
+      }
+    },
+    "modifiers": {
+      "trusted_brand_bonus": -50,
+      "amazon_sold_bonus": -30,
+      "prime_eligible_bonus": -10,
+      "high_review_count_bonus": -15,
+      "verified_purchase_ratio_bonus": -10,
+      "low_review_count_penalty": 20,
+      "new_seller_penalty": 25,
+      "overseas_seller_penalty": 30
+    }
+  },
+  "seller_patterns": {
+    "description": "怪しいセラーを検出するパターン",
+    "name_patterns": [
+      {
+        "id": "random_name",
+        "pattern": "^[A-Za-z]{2,4}[0-9]{3,}$",
+        "description": "ランダムな英数字のセラー名",
+        "score": 25
+      },
+      {
+        "id": "chinese_name",
+        "pattern": "^[\\u4e00-\\u9fff]+(?:商店|贸易|科技|电子|有限公司)$",
+        "description": "中国語のセラー名",
+        "score": 20
+      },
+      {
+        "id": "generic_jp_name",
+        "pattern": "^(?:株式会社)?[A-Za-z]+(?:ジャパン|Japan|JP)$",
+        "description": "ジェネリックな日本風セラー名",
+        "score": 15
+      }
+    ],
+    "address_indicators": {
+      "overseas": [
+        "中国",
+        "China",
+        "CN",
+        "深圳",
+        "Shenzhen",
+        "广东",
+        "Guangdong",
+        "广州",
+        "Guangzhou",
+        "東莞",
+        "Dongguan",
+        "福建",
+        "Fujian",
+        "浙江",
+        "Zhejiang",
+        "義烏",
+        "Yiwu",
+        "Hong Kong",
+        "香港",
+        "HK"
+      ],
+      "domestic": [
+        "東京都",
+        "大阪府",
+        "神奈川県",
+        "愛知県",
+        "埼玉県",
+        "千葉県",
+        "兵庫県",
+        "北海道",
+        "福岡県",
+        "静岡県"
+      ]
+    }
+  }
+}
