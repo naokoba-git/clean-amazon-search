@@ -24,6 +24,9 @@
   /** @type {number} 現在のフィルターレベル */
   let currentFilterLevel = 2;
 
+  /** @type {string} 現在のURL（ページ遷移検知用） */
+  let currentUrl = window.location.href;
+
   /**
    * ログ出力ヘルパー
    * @param {string} level - ログレベル ('log' | 'warn' | 'error')
@@ -251,26 +254,76 @@
         currentFilterLevel = newLevel;
 
         // ページを再フィルタリング
-        // 既存の処理済みマークとスタイルをリセット
-        const products = document.querySelectorAll('[data-component-type="s-search-result"]');
-        for (const product of products) {
-          delete product.dataset.casProcessed;
-          product.classList.remove('cas-product-hidden', 'cas-product-dimmed');
-          const badge = product.querySelector('.cas-product-badge');
-          if (badge) badge.remove();
-        }
-
-        // バナーを削除
-        const banner = document.getElementById('cas-filter-banner');
-        if (banner) {
-          banner.remove();
-          document.body.style.paddingTop = '';
-        }
-
-        // 再フィルタリング
-        runFiltering();
+        resetAndRefilter();
       }
     });
+  }
+
+  /**
+   * フィルタリング状態をリセットして再実行
+   */
+  function resetAndRefilter() {
+    // 既存の処理済みマークとスタイルをリセット
+    const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+    for (const product of products) {
+      delete product.dataset.casProcessed;
+      delete product.dataset.casTrusted;
+      delete product.dataset.casHidden;
+      product.classList.remove(
+        'cas-product-hidden',
+        'cas-product-dimmed',
+        'cas-product-trusted',
+        'cas-trusted-hidden',
+        'cas-all-visible'
+      );
+      const badge = product.querySelector('.cas-product-badge');
+      if (badge) badge.remove();
+    }
+
+    // バナーを削除
+    const banner = document.getElementById('cas-filter-banner');
+    if (banner) {
+      banner.remove();
+      document.body.style.paddingTop = '';
+    }
+
+    // 再フィルタリング
+    runFiltering();
+  }
+
+  /**
+   * URL変更を監視（SPAページ遷移対応）
+   */
+  function watchUrlChanges() {
+    // 定期的にURLをチェック（Amazon SPAナビゲーション対応）
+    setInterval(() => {
+      if (window.location.href !== currentUrl) {
+        const oldUrl = currentUrl;
+        currentUrl = window.location.href;
+        log('log', `URL changed: ${oldUrl} -> ${currentUrl}`);
+
+        // 検索結果ページの場合のみ再フィルタリング
+        if (isSearchResultsPage()) {
+          // 少し待機して新しいコンテンツが読み込まれるのを待つ
+          setTimeout(() => {
+            resetAndRefilter();
+          }, 1000);
+        }
+      }
+    }, 500);
+
+    // popstateイベント（ブラウザの戻る/進むボタン）
+    window.addEventListener('popstate', () => {
+      log('log', 'Popstate event detected');
+      if (isSearchResultsPage()) {
+        setTimeout(() => {
+          currentUrl = window.location.href;
+          resetAndRefilter();
+        }, 1000);
+      }
+    });
+
+    log('log', 'Started watching URL changes');
   }
 
   /**
@@ -304,6 +357,9 @@
 
       // storage変更を監視
       watchStorageChanges();
+
+      // URL変更を監視（ページ遷移対応）
+      watchUrlChanges();
 
       // アイコン状態を更新
       try {
