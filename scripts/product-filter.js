@@ -124,6 +124,9 @@ const ProductFilter = {
     .cas-product-hidden {
       display: none !important;
     }
+    .cas-trusted-hidden {
+      display: none !important;
+    }
     .cas-product-dimmed {
       opacity: 0.5;
       transition: opacity 0.2s;
@@ -416,13 +419,14 @@ const ProductFilter = {
 
     const messageText = `${stats.hidden}件の怪しい商品を非表示中`;
     const detailText = stats.warned > 0 ? ` | ${stats.warned}件に警告表示` : '';
-    const trustedText = stats.trusted > 0 ? ` | ${stats.trusted}件の信頼ブランド` : '';
+    const trustedText = stats.trusted > 0 ? ` | <a href="#" id="cas-show-trusted-only" style="color: #90EE90; text-decoration: underline; cursor: pointer;">${stats.trusted}件の信頼ブランド</a>` : '';
 
     banner.innerHTML = `
       <span class="cas-filter-banner-icon">&#128737;</span>
       <span>${messageText}${detailText}${trustedText}</span>
       <button class="cas-filter-banner-close" id="cas-banner-close">閉じる</button>
       <button class="cas-filter-banner-close" id="cas-banner-show-all">すべて表示</button>
+      <button class="cas-filter-banner-close" id="cas-banner-trusted-only">信頼のみ</button>
     `;
 
     document.body.insertBefore(banner, document.body.firstChild);
@@ -447,6 +451,85 @@ const ProductFilter = {
         banner.remove();
         document.body.style.paddingTop = '';
       });
+    }
+
+    // 信頼ブランドのみ表示ボタンのイベント
+    const trustedOnlyBtn = document.getElementById('cas-banner-trusted-only');
+    if (trustedOnlyBtn) {
+      trustedOnlyBtn.addEventListener('click', () => {
+        this.showTrustedOnly();
+        this.updateBannerForTrustedMode(banner);
+      });
+    }
+
+    // 信頼ブランドのリンクをクリック
+    const trustedLink = document.getElementById('cas-show-trusted-only');
+    if (trustedLink) {
+      trustedLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showTrustedOnly();
+        this.updateBannerForTrustedMode(banner);
+      });
+    }
+  },
+
+  /**
+   * 信頼ブランドのみ表示
+   */
+  showTrustedOnly() {
+    const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+    let trustedCount = 0;
+    let hiddenCount = 0;
+
+    for (const product of products) {
+      const badge = product.querySelector('.cas-product-badge-trusted');
+      if (badge) {
+        // 信頼ブランドは表示
+        product.classList.remove('cas-product-hidden', 'cas-trusted-hidden');
+        trustedCount++;
+      } else {
+        // それ以外は非表示
+        product.classList.add('cas-trusted-hidden');
+        hiddenCount++;
+      }
+    }
+
+    console.log(`[ProductFilter] Trusted only mode: showing ${trustedCount}, hiding ${hiddenCount}`);
+  },
+
+  /**
+   * 信頼モード時のバナー更新
+   * @param {Element} banner - バナー要素
+   */
+  updateBannerForTrustedMode(banner) {
+    const products = document.querySelectorAll('[data-component-type="s-search-result"]');
+    const trustedCount = document.querySelectorAll('.cas-product-badge-trusted').length;
+    const totalCount = products.length;
+
+    banner.innerHTML = `
+      <span class="cas-filter-banner-icon">&#10003;</span>
+      <span style="color: #90EE90;">信頼ブランドのみ表示中（${trustedCount}件 / ${totalCount}件）</span>
+      <button class="cas-filter-banner-close" id="cas-banner-show-all-from-trusted">通常表示に戻す</button>
+    `;
+
+    // 通常表示に戻すボタン
+    const showAllFromTrusted = document.getElementById('cas-banner-show-all-from-trusted');
+    if (showAllFromTrusted) {
+      showAllFromTrusted.addEventListener('click', () => {
+        this.restoreFromTrustedMode();
+        banner.remove();
+        document.body.style.paddingTop = '';
+      });
+    }
+  },
+
+  /**
+   * 信頼モードから通常モードに復元
+   */
+  restoreFromTrustedMode() {
+    const hiddenByTrusted = document.querySelectorAll('.cas-trusted-hidden');
+    for (const product of hiddenByTrusted) {
+      product.classList.remove('cas-trusted-hidden');
     }
   },
 
