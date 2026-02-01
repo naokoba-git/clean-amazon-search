@@ -7,178 +7,98 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- メインページ -->
-  <div id="main-page" class="main-page">
+  <div class="popup-container">
     <div class="header">
       <span class="header-icon">🛡️</span>
       <span class="header-title">Clean Amazon Search</span>
     </div>
 
     <div class="main-content">
-      <button id="apply-filter-btn" class="btn-primary">
-        <span>🔍</span>
-        <span>安心フィルターを適用</span>
-      </button>
-
-      <div class="current-setting">
-        <div>
-          <div class="current-setting-label">現在の設定</div>
-          <div class="current-setting-value" id="current-preset-name">スタンダード</div>
+      <!-- フィルター強度スライダー -->
+      <div class="filter-section">
+        <div class="filter-label">フィルター強度</div>
+        <div class="slider-container">
+          <span class="slider-label-left">OFF</span>
+          <input type="range" id="filter-level" min="0" max="4" value="2" class="filter-slider">
+          <span class="slider-label-right">最強</span>
         </div>
-        <button id="open-settings-btn" class="btn-settings">設定を変更 ›</button>
+        <div class="current-level">
+          <span id="current-level-name">スタンダード</span>
+        </div>
+      </div>
+
+      <!-- レベル説明 -->
+      <div class="level-descriptions">
+        <div class="level-desc-title">レベル説明:</div>
+        <ul class="level-list">
+          <li class="level-item" data-level="0">
+            <span class="level-bullet">•</span>
+            <span class="level-name">OFF:</span>
+            <span class="level-text">フィルターなし</span>
+          </li>
+          <li class="level-item" data-level="1">
+            <span class="level-bullet">•</span>
+            <span class="level-name">ライト:</span>
+            <span class="level-text">警告のみ</span>
+          </li>
+          <li class="level-item" data-level="2">
+            <span class="level-bullet">•</span>
+            <span class="level-name">スタンダード:</span>
+            <span class="level-text">怪しい商品を非表示</span>
+          </li>
+          <li class="level-item" data-level="3">
+            <span class="level-bullet">•</span>
+            <span class="level-name">ストリクト:</span>
+            <span class="level-text">より厳格に非表示</span>
+          </li>
+          <li class="level-item" data-level="4">
+            <span class="level-bullet">•</span>
+            <span class="level-name">最強:</span>
+            <span class="level-text">Amazon公式のみ</span>
+          </li>
+        </ul>
       </div>
 
       <div class="divider"></div>
 
-      <div class="toggle-settings">
-        <div class="toggle-item">
-          <span class="toggle-label">自動適用モード</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="auto-apply-toggle">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-item">
-          <span class="toggle-label">ページ内ボタン表示</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="page-button-toggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-item">
-          <span class="toggle-label">海外セラー自動判定</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="seller-check-toggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="toggle-item sub-toggle" id="hide-overseas-container">
-          <span class="toggle-label">↳ 海外セラーを非表示</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="hide-overseas-toggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
+      <!-- 統計セクション -->
       <div class="stats-section">
         <div class="stats-title">
           <span>📊</span>
-          <span>あなたの安心ショッピング</span>
+          <span>フィルター効果（本日）</span>
         </div>
         <div class="stats-list">
           <div class="stats-item">
-            <span class="stats-icon">🇯🇵</span>
-            <span>国内発送に絞り込み:</span>
-            <span class="stats-count" id="stats-domestic">0</span>
-            <span>回</span>
+            <span class="stats-icon">🚫</span>
+            <span class="stats-label">非表示:</span>
+            <span class="stats-count" id="stats-hidden">0</span>
+            <span class="stats-unit">件</span>
           </div>
           <div class="stats-item">
-            <span class="stats-icon">📦</span>
-            <span>Amazon配送を優先:</span>
-            <span class="stats-count" id="stats-fba">0</span>
-            <span>回</span>
+            <span class="stats-icon">⚠️</span>
+            <span class="stats-label">警告:</span>
+            <span class="stats-count" id="stats-warned">0</span>
+            <span class="stats-unit">件</span>
           </div>
           <div class="stats-item">
-            <span class="stats-icon">⭐</span>
-            <span>高評価商品をチェック:</span>
-            <span class="stats-count" id="stats-rating">0</span>
-            <span>回</span>
+            <span class="stats-icon">✅</span>
+            <span class="stats-label">信頼:</span>
+            <span class="stats-count" id="stats-trusted">0</span>
+            <span class="stats-unit">件</span>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="footer">
-      <a href="https://github.com/" target="_blank">フィードバック</a>
+      <div class="divider"></div>
+
+      <!-- ページリロードボタン -->
+      <button id="reload-btn" class="btn-reload">
+        <span>🔄</span>
+        <span>現在のページを更新</span>
+      </button>
     </div>
   </div>
 
-  <!-- 設定ページ -->
-  <div id="settings-page" class="settings-page">
-    <div class="header">
-      <span class="header-icon">⚙️</span>
-      <span class="header-title">フィルター設定</span>
-    </div>
-
-    <div class="main-content">
-      <div class="settings-header">
-        <button id="back-btn" class="btn-back">←</button>
-        <span class="settings-title">フィルター強度</span>
-      </div>
-
-      <div class="filter-options">
-        <div class="filter-option selected" data-preset="standard">
-          <div class="filter-option-header">
-            <input type="radio" name="filter-preset" value="standard" class="filter-radio" checked>
-            <span class="filter-option-name">スタンダード</span>
-            <span class="filter-option-recommended">推奨</span>
-          </div>
-          <div class="filter-option-desc">Prime対象（Amazon配送）</div>
-          <div class="filter-option-subtext">日本の優良セラーも表示</div>
-        </div>
-
-        <div class="filter-option" data-preset="premium">
-          <div class="filter-option-header">
-            <input type="radio" name="filter-preset" value="premium" class="filter-radio">
-            <span class="filter-option-name">プレミアム</span>
-          </div>
-          <div class="filter-option-desc">Prime対象 + 評価★4以上</div>
-          <div class="filter-option-subtext">より厳選された商品</div>
-        </div>
-
-        <div class="filter-option" data-preset="strict">
-          <div class="filter-option-header">
-            <input type="radio" name="filter-preset" value="strict" class="filter-radio">
-            <span class="filter-option-name">ストリクト</span>
-          </div>
-          <div class="filter-option-desc">Amazon公式販売のみ</div>
-          <div class="filter-option-subtext">最も厳格（商品数少なめ）</div>
-        </div>
-
-        <div class="filter-option" data-preset="custom">
-          <div class="filter-option-header">
-            <input type="radio" name="filter-preset" value="custom" class="filter-radio">
-            <span class="filter-option-name">カスタム</span>
-          </div>
-          <div class="filter-option-desc">条件を自分で設定</div>
-        </div>
-      </div>
-
-      <div id="custom-settings" class="custom-settings">
-        <div class="custom-settings-title">カスタム設定</div>
-        <div class="custom-options">
-          <div class="custom-option">
-            <input type="checkbox" id="custom-domestic" checked>
-            <label for="custom-domestic">国内発送のみ</label>
-          </div>
-          <div class="custom-option">
-            <input type="checkbox" id="custom-fba" checked>
-            <label for="custom-fba">Amazon配送（FBA）のみ</label>
-          </div>
-          <div class="custom-option">
-            <input type="checkbox" id="custom-prime">
-            <label for="custom-prime">Prime対象のみ</label>
-          </div>
-          <div class="custom-option">
-            <input type="checkbox" id="custom-amazon-only">
-            <label for="custom-amazon-only">Amazon公式のみ</label>
-          </div>
-          <div class="custom-option">
-            <input type="checkbox" id="custom-rating">
-            <label for="custom-rating">評価★4以上</label>
-          </div>
-        </div>
-      </div>
-
-      <button id="save-settings-btn" class="btn-save">保存</button>
-    </div>
-  </div>
-
-  <script src="../scripts/constants.js"></script>
-  <script src="../scripts/filter-utils.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
