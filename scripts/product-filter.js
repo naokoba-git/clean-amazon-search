@@ -87,39 +87,45 @@ const ProductFilter = {
       background: rgba(255, 255, 255, 0.3);
     }
     .cas-product-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: bold;
-      margin: 6px 0;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      padding: 8px 14px !important;
+      border-radius: 6px !important;
+      font-size: 13px !important;
+      font-weight: bold !important;
+      margin: 8px 0 !important;
+      line-height: 1.4 !important;
+      z-index: 100 !important;
+      position: relative !important;
     }
     .cas-product-badge-trusted {
-      background: #d4edda;
-      border: 1px solid #28a745;
-      color: #155724;
+      background: #d4edda !important;
+      border: 2px solid #28a745 !important;
+      color: #155724 !important;
     }
     .cas-product-badge-warning {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      color: #856404;
+      background: #fff3cd !important;
+      border: 3px solid #ffc107 !important;
+      color: #664d03 !important;
+      font-size: 13px !important;
+      padding: 8px 14px !important;
+      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4) !important;
     }
     .cas-product-badge-danger {
-      background: #f8d7da;
-      border: 1px solid #dc3545;
-      color: #721c24;
+      background: #f8d7da !important;
+      border: 2px solid #dc3545 !important;
+      color: #721c24 !important;
     }
     .cas-product-badge-icon {
-      font-size: 12px;
+      font-size: 16px !important;
     }
     .cas-product-badge-reasons {
-      font-weight: normal;
-      font-size: 10px;
-      margin-left: 4px;
-      color: inherit;
-      opacity: 0.8;
+      font-weight: normal !important;
+      font-size: 11px !important;
+      margin-left: 6px !important;
+      color: inherit !important;
+      opacity: 0.9 !important;
     }
     .cas-product-hidden {
       display: none !important;
@@ -716,16 +722,16 @@ const ProductFilter = {
         break;
     }
 
-    // 理由を整形（最大3つまで表示）
-    const displayReasons = reasons.slice(0, 3);
-    const reasonsText = displayReasons.length > 0
-      ? `(${displayReasons.join(', ')})`
+    // 理由を整形（簡潔な表現に変換、最大2つまで）
+    const simplifiedReasons = reasons.slice(0, 2).map(r => this.simplifyReason(r));
+    const reasonsText = simplifiedReasons.length > 0
+      ? simplifiedReasons.join('・')
       : '';
 
     badge.innerHTML = `
       <span class="cas-product-badge-icon">${icon}</span>
       <span>${text}</span>
-      ${reasonsText ? `<span class="cas-product-badge-reasons">${reasonsText}</span>` : ''}
+      ${reasonsText ? `<span class="cas-product-badge-reasons">| ${reasonsText}</span>` : ''}
     `;
 
     // タイトル要素の後に挿入
@@ -740,6 +746,59 @@ const ProductFilter = {
 
     // データ属性を設定
     productElement.dataset.casBadge = type;
+  },
+
+  /**
+   * 警告理由を簡潔な表現に変換
+   * @param {string} reason - 元の理由
+   * @returns {string} 簡潔な理由
+   */
+  simplifyReason(reason) {
+    const simplifications = {
+      // ブランド関連
+      '子音のみ4文字以上（例: BKPH, XRDT, GVNM）': '怪しいブランド名',
+      '大文字のみ6文字以上（例: QWERTZ, ASDFGH）': '怪しいブランド名',
+      '大文字のみ6文字以上': '怪しいブランド名',
+      '末尾がJP（例: BrandJP, RandomJP）': 'JP商法',
+      '末尾がJapan（例: NoNameJapan）': 'Japan商法',
+      '末尾にJP/日本': 'JP商法',
+      'ランダムな英数字の組み合わせ（例: AB123, XY99Z）': '怪しいブランド名',
+      'ランダムな英字列（子音のみ4文字以上）': '怪しいブランド名',
+      '中国企業の接尾辞を含むブランド名': '中国ブランド',
+      '簡体字を含むブランド名（中国ブランドの可能性）': '中国ブランド',
+      '大文字小文字が交互（例: AbCdEf）': '怪しいブランド名',
+      'ノーブランド/Generic': 'ノーブランド',
+      // タイトル関連
+      'タイトルが非常に長い': 'タイトル長すぎ',
+      'タイトルが長すぎる': 'タイトル長すぎ',
+      // 誇大表現
+      '誇大広告表現': '誇大広告',
+      '最新版表現': '誇大広告',
+      '令和最新': '誇大広告',
+      // その他
+      '信頼できるブランド': '信頼ブランド',
+      '日本の工房・製作所': '日本ブランド'
+    };
+
+    // 完全一致
+    if (simplifications[reason]) {
+      return simplifications[reason];
+    }
+
+    // 部分一致
+    for (const [key, value] of Object.entries(simplifications)) {
+      if (reason.includes(key) || key.includes(reason)) {
+        return value;
+      }
+    }
+
+    // タイトル長さの特別処理
+    if (reason.match(/タイトルが.*長.*\(\d+文字\)/)) {
+      return 'タイトル長すぎ';
+    }
+
+    // 短縮できない場合は最初の10文字
+    return reason.length > 12 ? reason.substring(0, 10) + '…' : reason;
   },
 
   /**
