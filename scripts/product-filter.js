@@ -320,9 +320,10 @@ const ProductFilter = {
     // 既存のバッジを削除
     this.removeBadge(productElement);
 
-    // 信頼ブランドの場合（バッジは表示しないが、内部的にマーク）
+    // 信頼ブランドの場合
     if (isTrusted) {
-      // バッジは表示せず、data属性でマークのみ
+      // 信頼ブランドバッジを表示
+      this.addProductBadge(productElement, this.BADGE_TYPES.TRUSTED, ['信頼できるブランド']);
       productElement.dataset.casTrusted = 'true';
       productElement.classList.add('cas-product-trusted');
       productElement.classList.remove('cas-product-hidden', 'cas-product-dimmed');
