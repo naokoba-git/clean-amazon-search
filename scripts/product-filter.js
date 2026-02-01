@@ -27,18 +27,18 @@ const ProductFilter = {
   },
 
   /**
-   * 各レベルの閾値設定
+   * 各レベルの閾値設定（PM会議決定に基づく）
    * @type {Object}
    */
   THRESHOLDS: {
     // LIGHT: 警告のみ表示、非表示なし
-    1: { warn: 50, hide: Infinity },
-    // STANDARD: 中程度のフィルタリング
-    2: { warn: 40, hide: 80 },
+    1: { warn: 30, hide: Infinity },
+    // STANDARD: 中程度のフィルタリング（デフォルト）
+    2: { warn: 30, hide: 50 },
     // STRICT: 厳格なフィルタリング
-    3: { warn: 25, hide: 60 },
+    3: { warn: 20, hide: 35 },
     // MAXIMUM: 最強フィルタリング
-    4: { warn: 15, hide: 40 }
+    4: { warn: 10, hide: 25 }
   },
 
   /**
@@ -186,42 +186,47 @@ const ProductFilter = {
       }
 
       // ブランド名の取得（複数のパターンを試行）
-      // パターン1: .a-size-base-plus.a-color-base（ブランド専用行）
-      const brandElement = productElement.querySelector('.a-size-base-plus.a-color-base');
-      if (brandElement) {
-        info.brandName = brandElement.textContent?.trim() || '';
+
+      // パターン1: タイトルの先頭からブランド名を抽出（最も確実）
+      // Amazonのタイトルは通常「ブランド名 商品名...」の形式
+      if (info.title) {
+        const brandFromTitle = this.extractBrandFromTitle(info.title);
+        if (brandFromTitle) {
+          info.brandName = brandFromTitle;
+        }
       }
 
-      // パターン2: span.a-size-base（ブランド名が含まれる場合あり）
+      // パターン2: ブランドリンク（/stores/や/brand/を含むリンク）
       if (!info.brandName) {
-        const possibleBrandSpans = productElement.querySelectorAll('span.a-size-base');
-        for (const span of possibleBrandSpans) {
-          const text = span.textContent?.trim() || '';
-          // 「ブランド:」で始まる場合
-          if (text.startsWith('ブランド:')) {
-            info.brandName = text.replace('ブランド:', '').trim();
-            break;
+        const brandLink = productElement.querySelector('a[href*="/stores/"]') ||
+                          productElement.querySelector('a[href*="/brand/"]');
+        if (brandLink) {
+          const brandText = brandLink.textContent?.trim();
+          if (brandText && brandText.length < 50) {
+            info.brandName = brandText;
           }
-          // 親要素がリンクで、商品リンクではない場合
-          const parent = span.parentElement;
-          if (parent?.tagName === 'A' && !parent.href?.includes('/dp/')) {
+        }
+      }
+
+      // パターン3: span.a-size-base-plus（商品タイトルとは別のブランド行）
+      if (!info.brandName) {
+        const brandRows = productElement.querySelectorAll('.a-row .a-size-base');
+        for (const row of brandRows) {
+          const text = row.textContent?.trim() || '';
+          // 短いテキストでタイトルと異なる場合はブランド名の可能性
+          if (text.length > 0 && text.length < 30 && text !== info.title.substring(0, text.length)) {
             info.brandName = text;
             break;
           }
         }
       }
 
-      // パターン3: h2の前にあるブランド表記
+      // パターン4: 「ブランド:」で始まるテキスト
       if (!info.brandName) {
-        const h2 = productElement.querySelector('h2');
-        if (h2) {
-          const prevElement = h2.previousElementSibling;
-          if (prevElement) {
-            const possibleBrand = prevElement.textContent?.trim() || '';
-            if (possibleBrand.length > 0 && possibleBrand.length < 50) {
-              info.brandName = possibleBrand;
-            }
-          }
+        const allText = productElement.textContent || '';
+        const brandMatch = allText.match(/ブランド[:：]\s*([^\s,、]+)/);
+        if (brandMatch) {
+          info.brandName = brandMatch[1];
         }
       }
 
@@ -525,6 +530,56 @@ const ProductFilter = {
       existingBadge.remove();
     }
     delete productElement.dataset.casBadge;
+  },
+
+  /**
+   * タイトルからブランド名を抽出
+   * @param {string} title - 商品タイトル
+   * @returns {string|null} ブランド名、抽出できない場合はnull
+   */
+  extractBrandFromTitle(title) {
+    if (!title) return null;
+
+    // 【】で始まる場合はスキップして次の単語を取得
+    let cleanTitle = title.replace(/^【[^】]*】\s*/, '');
+
+    // タイトルの先頭の単語を取得（スペースや記号で区切る）
+    const match = cleanTitle.match(/^([A-Za-z][A-Za-z0-9\-\.]*|[ァ-ヶー]+|[一-龠]+)/);
+    if (match) {
+      const candidate = match[1];
+      // 1文字や一般的な単語は除外
+      if (candidate.length >= 2 && !this.isCommonWord(candidate)) {
+        return candidate;
+      }
+    }
+
+    // 半角スペースで区切った最初の単語
+    const firstWord = cleanTitle.split(/[\s\u3000]/)[0];
+    if (firstWord && firstWord.length >= 2 && firstWord.length <= 30) {
+      // 英数字で始まる場合、または日本語ブランド名の場合
+      if (/^[A-Za-z0-9]/.test(firstWord) || /^[ァ-ヶー一-龠]/.test(firstWord)) {
+        // 括弧や記号を除去
+        const cleanBrand = firstWord.replace(/[\(\)（）\[\]【】「」]/g, '').trim();
+        if (cleanBrand.length >= 2 && !this.isCommonWord(cleanBrand)) {
+          return cleanBrand;
+        }
+      }
+    }
+
+    return null;
+  },
+
+  /**
+   * 一般的な単語かどうかを判定
+   * @param {string} word - 単語
+   * @returns {boolean} 一般的な単語の場合true
+   */
+  isCommonWord(word) {
+    const commonWords = [
+      'for', 'with', 'and', 'the', 'new', 'pro', 'max', 'mini', 'plus',
+      'モバイル', 'ワイヤレス', '充電', '対応', '最新', '大容量', '急速'
+    ];
+    return commonWords.includes(word.toLowerCase());
   },
 
   /**
