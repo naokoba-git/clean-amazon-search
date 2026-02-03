@@ -88,7 +88,7 @@ Amazon.co.jpでのお買い物を、もっと安心に。
 
 - Chrome Extension Manifest V3
 - 対応サイト: Amazon.co.jp
-- 必要な権限: `activeTab`, `scripting`, `storage`
+- 必要な権限: `storage`（設定保存用）
 
 ## ライセンス
 
