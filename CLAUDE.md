@@ -39,8 +39,10 @@ clean-amazon-search/
 │   ├── sellers.json           # セラー情報
 │   ├── trusted-brands.json    # 信頼ブランドリスト
 │   └── suspicious-patterns.json # 怪しいパターン定義
+├── releases/              # リリースZIPファイル
 ├── icons/                 # アイコン画像
 ├── docs/                  # ドキュメント
+├── Docs/                  # プロンプト履歴等
 └── _locales/ja/          # 日本語ローカライズ
 ```
 
@@ -68,6 +70,12 @@ clean-amazon-search/
 
 ## 技術的な注意点
 
+### 権限（Manifest V3）
+- `storage`: 設定保存用
+- `host_permissions`: Amazon.co.jp内でのみ動作
+- ※ `activeTab`は不要（host_permissionsで代替）
+- ※ `scripting`は不要（content_scriptsで自動注入）
+
 ### CORS制限
 - Content Scriptからの直接fetchはCORS制限あり
 - Background Service Worker経由でfetchすることで回避
@@ -90,6 +98,15 @@ OVERSEAS_INDICATORS = ['中国', 'China', '深圳', '广东', ...]
 
 ## 開発履歴
 
+### v1.2.2 (2026-02-03)
+- **Chrome Web Store審査対応**
+- `activeTab`権限を削除（host_permissionsで代替可能、冗長）
+- User-Agentスプーフィングを削除（ポリシー違反リスク）
+- プライバシーポリシーを実際の権限・動作に合わせて修正
+
+### v1.2.1 (2026-02-03)
+- 不要な権限を削除（審査対応の初期対応）
+
 ### v1.2.0 (2026-02-01)
 - 警告バッジ表示バグを修正（overflow:hidden問題）
 - 信頼ブランドバッジを表示するように変更
@@ -109,19 +126,28 @@ OVERSEAS_INDICATORS = ['中国', 'China', '深圳', '广东', ...]
 - ポップアップUI
 - オンボーディング画面
 
+## Chrome Web Store審査
+
+### 審査履歴
+| 日付 | バージョン | 結果 | 理由 |
+|------|-----------|------|------|
+| 2026-02-03 | 1.1.0 | 不承認 | 権限の過剰使用（activeTab） |
+| 2026-02-03 | 1.2.2 | 再提出予定 | - |
+
+### 審査チェックリスト（確認済み）
+- [x] 不要な権限がない（storage, host_permissionsのみ）
+- [x] User-Agentスプーフィングなし
+- [x] リモートコード実行なし（eval, new Function等）
+- [x] 外部サーバー通信なし（Amazon.co.jp内のみ）
+- [x] プライバシーポリシーが権限と一致
+- [x] 難読化コードなし
+
 ## 今後の改善案
+- [ ] Chrome Web Store公開完了
 - [ ] 検索結果ページでのセラー一括チェック（技術的課題あり）
 - [ ] セラーのブラックリスト/ホワイトリスト機能
 - [ ] 判定結果のキャッシュ改善
 - [ ] タイトル長判定の閾値調整
-- [ ] Chrome Web Store公開
-
-## テスト方法
-```bash
-# Playwrightでテスト
-cd /private/tmp/claude-501/-Users-kobayashi-Desktop-Amazon/6c5fcdc4-e8a3-47dd-bb37-c563fc2d5c40/scratchpad
-node test-final.js
-```
 
 ## 最終更新
-2026-02-01
+2026-02-03
