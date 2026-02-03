@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Clean Amazon Search",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "国内発送・Amazon配送の商品を優先表示。日本の優良セラーも含めて、安心してお買い物。",
   "default_locale": "ja",
   "permissions": [
