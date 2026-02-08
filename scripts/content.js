@@ -254,6 +254,13 @@
         currentFilterLevel = newLevel;
 
         // ページを再フィルタリング
+        filterConfigCache = null;
+        resetAndRefilter();
+      }
+
+      if (changes.customBrands) {
+        log('log', 'Custom brands changed, refiltering...');
+        filterConfigCache = null;
         resetAndRefilter();
       }
     });

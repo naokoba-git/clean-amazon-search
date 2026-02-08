@@ -62,7 +62,14 @@ const UIManager = {
       statsHidden: document.getElementById('stats-hidden'),
       statsWarned: document.getElementById('stats-warned'),
       statsTrusted: document.getElementById('stats-trusted'),
-      reloadBtn: document.getElementById('reload-btn')
+      reloadBtn: document.getElementById('reload-btn'),
+      customBrandsToggle: document.getElementById('custom-brands-toggle'),
+      customBrandsBody: document.getElementById('custom-brands-body'),
+      customBrandsArrow: document.getElementById('custom-brands-arrow'),
+      customBrandsCount: document.getElementById('custom-brands-count'),
+      customBrandInput: document.getElementById('custom-brand-input'),
+      customBrandAddBtn: document.getElementById('custom-brand-add-btn'),
+      customBrandsList: document.getElementById('custom-brands-list')
     };
   },
 
@@ -99,6 +106,71 @@ const UIManager = {
     this.elements.statsHidden.textContent = stats.hidden || 0;
     this.elements.statsWarned.textContent = stats.warned || 0;
     this.elements.statsTrusted.textContent = stats.trusted || 0;
+  },
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  renderCustomBrands(brands) {
+    const list = this.elements.customBrandsList;
+    this.elements.customBrandsCount.textContent = `${brands.length}件`;
+
+    if (brands.length === 0) {
+      list.innerHTML = '<div class="custom-brands-empty">ブランドが追加されていません</div>';
+      return;
+    }
+
+    list.innerHTML = brands.map(name => {
+      const escaped = this.escapeHtml(name);
+      return `
+      <div class="custom-brands-item">
+        <span class="custom-brands-item-name">${escaped}</span>
+        <button class="custom-brands-remove-btn" data-brand="${escaped}">&times;</button>
+      </div>`;
+    }).join('');
+  }
+};
+
+/**
+ * カスタムブランド管理モジュール
+ */
+const CustomBrandsManager = {
+  /** @type {string[]} */
+  brands: [],
+
+  async load() {
+    try {
+      const result = await chrome.storage.local.get(['customBrands']);
+      this.brands = result.customBrands || [];
+    } catch (error) {
+      console.error('カスタムブランドの読み込みに失敗:', error);
+      this.brands = [];
+    }
+    return this.brands;
+  },
+
+  async save() {
+    await chrome.storage.local.set({ customBrands: this.brands });
+  },
+
+  async add(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    // 重複チェック（case-insensitive）
+    if (this.brands.some(b => b.toLowerCase() === trimmed.toLowerCase())) {
+      return false;
+    }
+    this.brands.push(trimmed);
+    await this.save();
+    return true;
+  },
+
+  async remove(name) {
+    this.brands = this.brands.filter(b => b !== name);
+    await this.save();
   }
 };
 
@@ -132,6 +204,34 @@ const EventHandlers = {
     }
   },
 
+  onCustomBrandsToggle() {
+    const body = UIManager.elements.customBrandsBody;
+    const arrow = UIManager.elements.customBrandsArrow;
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    arrow.classList.toggle('open', !isOpen);
+  },
+
+  async onCustomBrandAdd() {
+    const input = UIManager.elements.customBrandInput;
+    const name = input.value.trim();
+    if (!name) return;
+
+    const added = await CustomBrandsManager.add(name);
+    if (added) {
+      input.value = '';
+      UIManager.renderCustomBrands(CustomBrandsManager.brands);
+    }
+  },
+
+  async onCustomBrandRemove(event) {
+    const btn = event.target.closest('.custom-brands-remove-btn');
+    if (!btn) return;
+    const name = btn.dataset.brand;
+    await CustomBrandsManager.remove(name);
+    UIManager.renderCustomBrands(CustomBrandsManager.brands);
+  },
+
   /**
    * すべてのイベントリスナーを登録
    */
@@ -139,6 +239,14 @@ const EventHandlers = {
     const { elements } = UIManager;
     elements.filterSlider.addEventListener('input', this.onSliderChange);
     elements.reloadBtn.addEventListener('click', this.onReloadClick);
+
+    // カスタムブランド
+    elements.customBrandsToggle.addEventListener('click', this.onCustomBrandsToggle);
+    elements.customBrandAddBtn.addEventListener('click', () => this.onCustomBrandAdd());
+    elements.customBrandInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.onCustomBrandAdd();
+    });
+    elements.customBrandsList.addEventListener('click', (e) => this.onCustomBrandRemove(e));
   }
 };
 
@@ -173,6 +281,10 @@ const PopupController = {
       // 設定を読み込んでUIを初期化
       const settings = await SettingsManager.loadAll();
       this.initializeUI(settings);
+
+      // カスタムブランドを読み込んで描画
+      const brands = await CustomBrandsManager.load();
+      UIManager.renderCustomBrands(brands);
     } catch (error) {
       console.error('ポップアップの初期化に失敗:', error);
     }

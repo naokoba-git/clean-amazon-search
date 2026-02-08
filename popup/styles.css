@@ -238,6 +238,141 @@ body {
   font-size: 12px;
 }
 
+/* カスタム信頼ブランド */
+.custom-brands-section {
+  background: #f9f9f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.custom-brands-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.custom-brands-header:hover {
+  background: #f0f0f0;
+}
+
+.custom-brands-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+}
+
+.custom-brands-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+}
+
+.custom-brands-arrow {
+  font-size: 10px;
+  color: #999;
+  transition: transform 0.2s;
+}
+
+.custom-brands-arrow.open {
+  transform: rotate(180deg);
+}
+
+.custom-brands-body {
+  padding: 0 12px 12px;
+}
+
+.custom-brands-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.custom-brands-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.custom-brands-input:focus {
+  border-color: #FF9900;
+}
+
+.custom-brands-add-btn {
+  background: #FF9900;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.custom-brands-add-btn:hover {
+  background: #e88a00;
+}
+
+.custom-brands-list {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.custom-brands-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+}
+
+.custom-brands-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-brands-remove-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.custom-brands-remove-btn:hover {
+  color: #dc3545;
+}
+
+.custom-brands-empty {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding: 8px 0;
+}
+
 /* リロードボタン */
 .btn-reload {
   width: 100%;

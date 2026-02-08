@@ -904,6 +904,22 @@ const ProductFilter = {
         }
       }
 
+      // カスタムブランドをマージ
+      try {
+        const result = await new Promise((resolve) => {
+          chrome.storage.local.get(['customBrands'], resolve);
+        });
+        if (result.customBrands && Array.isArray(result.customBrands)) {
+          for (const brand of result.customBrands) {
+            if (!allBrands.some(b => b.toLowerCase() === brand.toLowerCase())) {
+              allBrands.push(brand);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[ProductFilter] Failed to load custom brands:', e);
+      }
+
       return allBrands;
     } catch (error) {
       console.error('[ProductFilter] Failed to load trusted brands:', error);
