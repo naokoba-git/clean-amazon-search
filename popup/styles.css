@@ -238,14 +238,14 @@ body {
   font-size: 12px;
 }
 
-/* カスタム信頼ブランド */
-.custom-brands-section {
+/* ブランドセクション（共通） */
+.brand-section {
   background: #f9f9f9;
   border-radius: 8px;
   overflow: hidden;
 }
 
-.custom-brands-header {
+.brand-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -255,11 +255,11 @@ body {
   transition: background 0.2s;
 }
 
-.custom-brands-header:hover {
+.brand-section-header:hover {
   background: #f0f0f0;
 }
 
-.custom-brands-header-left {
+.brand-section-header-left {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -268,33 +268,33 @@ body {
   color: #666;
 }
 
-.custom-brands-count {
+.brand-section-count {
   font-size: 12px;
   font-weight: 400;
   color: #999;
 }
 
-.custom-brands-arrow {
+.brand-section-arrow {
   font-size: 10px;
   color: #999;
   transition: transform 0.2s;
 }
 
-.custom-brands-arrow.open {
+.brand-section-arrow.open {
   transform: rotate(180deg);
 }
 
-.custom-brands-body {
+.brand-section-body {
   padding: 0 12px 12px;
 }
 
-.custom-brands-form {
+.brand-section-form {
   display: flex;
   gap: 6px;
   margin-bottom: 8px;
 }
 
-.custom-brands-input {
+.brand-section-input {
   flex: 1;
   padding: 6px 10px;
   border: 1px solid #ddd;
@@ -304,208 +304,102 @@ body {
   transition: border-color 0.2s;
 }
 
-.custom-brands-input:focus {
+.brand-section-add-btn {
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.brand-section-list {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand-section-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.brand-section-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-section-remove-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.brand-section-empty {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* カスタム信頼ブランド（差分） */
+.brand-section--custom .brand-section-input:focus {
   border-color: #FF9900;
 }
 
-.custom-brands-add-btn {
+.brand-section--custom .brand-section-add-btn {
   background: #FF9900;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s;
 }
 
-.custom-brands-add-btn:hover {
+.brand-section--custom .brand-section-add-btn:hover {
   background: #e88a00;
 }
 
-.custom-brands-list {
-  max-height: 150px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.custom-brands-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px 8px;
-  background: #fff;
+.brand-section-item--custom {
   border: 1px solid #eee;
-  border-radius: 6px;
-  font-size: 13px;
   color: #333;
 }
 
-.custom-brands-item-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.custom-brands-remove-btn {
-  background: none;
-  border: none;
-  color: #999;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.custom-brands-remove-btn:hover {
+.brand-section-item--custom .brand-section-remove-btn:hover {
   color: #dc3545;
 }
 
-.custom-brands-empty {
-  font-size: 12px;
-  color: #999;
-  text-align: center;
-  padding: 8px 0;
-}
-
-/* 非表示ブランド */
-.excluded-brands-section {
-  background: #f9f9f9;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.excluded-brands-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s;
-}
-
-.excluded-brands-header:hover {
-  background: #f0f0f0;
-}
-
-.excluded-brands-header-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #666;
-}
-
-.excluded-brands-count {
-  font-size: 12px;
-  font-weight: 400;
-  color: #999;
-}
-
-.excluded-brands-arrow {
-  font-size: 10px;
-  color: #999;
-  transition: transform 0.2s;
-}
-
-.excluded-brands-arrow.open {
-  transform: rotate(180deg);
-}
-
-.excluded-brands-body {
-  padding: 0 12px 12px;
-}
-
-.excluded-brands-form {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.excluded-brands-input {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.excluded-brands-input:focus {
+/* 非表示ブランド（差分） */
+.brand-section--excluded .brand-section-input:focus {
   border-color: #dc3545;
 }
 
-.excluded-brands-add-btn {
+.brand-section--excluded .brand-section-add-btn {
   background: #6c757d;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s;
 }
 
-.excluded-brands-add-btn:hover {
+.brand-section--excluded .brand-section-add-btn:hover {
   background: #5a6268;
 }
 
-.excluded-brands-list {
-  max-height: 150px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.excluded-brands-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px 8px;
-  background: #fff;
+.brand-section-item--excluded {
   border: 1px solid #f0d0d0;
-  border-radius: 6px;
-  font-size: 13px;
   color: #721c24;
 }
 
-.excluded-brands-item-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.excluded-brands-remove-btn {
-  background: none;
-  border: none;
-  color: #999;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.excluded-brands-remove-btn:hover {
+.brand-section-item--excluded .brand-section-remove-btn:hover {
   color: #28a745;
-}
-
-.excluded-brands-empty {
-  font-size: 12px;
-  color: #999;
-  text-align: center;
-  padding: 8px 0;
 }
 
 /* リロードボタン */

@@ -325,7 +325,7 @@ const ProductFilter = {
    * @param {number} filterLevel - フィルターレベル (0-4)
    * @returns {'hidden'|'warned'|'trusted'|'none'} 適用結果
    */
-  applyFilter(productElement, scoreResult, filterLevel) {
+  applyFilter(productElement, scoreResult, filterLevel, brandName = '') {
     // フィルターOFFの場合は何もしない
     if (filterLevel === this.FILTER_LEVELS.OFF) {
       return 'none';
@@ -340,7 +340,7 @@ const ProductFilter = {
     // 信頼ブランドの場合
     if (isTrusted) {
       // 信頼ブランドバッジを表示
-      this.addProductBadge(productElement, this.BADGE_TYPES.TRUSTED, ['信頼できるブランド']);
+      this.addProductBadge(productElement, this.BADGE_TYPES.TRUSTED, ['信頼できるブランド'], brandName);
       productElement.dataset.casTrusted = 'true';
       productElement.classList.add('cas-product-trusted');
       productElement.classList.remove('cas-product-hidden', 'cas-product-dimmed');
@@ -403,7 +403,7 @@ const ProductFilter = {
       const scoreResult = this.calculateScore(productInfo, config);
 
       // フィルターを適用
-      const result = this.applyFilter(productElement, scoreResult, filterLevel);
+      const result = this.applyFilter(productElement, scoreResult, filterLevel, productInfo.brandName);
 
       // 統計を更新
       switch (result) {
@@ -716,7 +716,7 @@ const ProductFilter = {
    * @param {'trusted'|'warning'|'danger'} type - バッジタイプ
    * @param {string[]} reasons - 理由の配列
    */
-  addProductBadge(productElement, type, reasons = []) {
+  addProductBadge(productElement, type, reasons = [], brandName = '') {
     // 既存のバッジを削除
     this.removeBadge(productElement);
 
@@ -748,10 +748,6 @@ const ProductFilter = {
     const reasonsText = simplifiedReasons.length > 0
       ? simplifiedReasons.join('・')
       : '';
-
-    // ブランド名をdata属性に保存（×ボタン用）
-    const productInfo = this.extractProductInfo(productElement);
-    const brandName = productInfo.brandName || '';
 
     // 信頼ブランドの場合は×ボタンを追加
     const excludeBtn = type === this.BADGE_TYPES.TRUSTED && brandName
@@ -1040,7 +1036,7 @@ const ProductFilter = {
 
               const productInfo = this.extractProductInfo(productElement);
               const scoreResult = this.calculateScore(productInfo, config);
-              this.applyFilter(productElement, scoreResult, filterLevel);
+              this.applyFilter(productElement, scoreResult, filterLevel, productInfo.brandName);
               productElement.dataset.casProcessed = 'true';
             }
           }

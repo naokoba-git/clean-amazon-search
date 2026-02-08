@@ -181,7 +181,7 @@
       const scoreResult = ProductFilter.calculateScore(productInfo, config);
 
       // フィルターを適用
-      ProductFilter.applyFilter(productElement, scoreResult, currentFilterLevel);
+      ProductFilter.applyFilter(productElement, scoreResult, currentFilterLevel, productInfo.brandName);
 
       // 処理済みマークを付ける
       productElement.dataset.casProcessed = 'true';
@@ -258,17 +258,10 @@
       }
 
       // sync: customBrands / excludedBrands 変更
-      if (areaName === 'sync') {
-        if (changes.customBrands) {
-          log('log', 'Custom brands changed, refiltering...');
-          filterConfigCache = null;
-          resetAndRefilter();
-        }
-        if (changes.excludedBrands) {
-          log('log', 'Excluded brands changed, refiltering...');
-          filterConfigCache = null;
-          resetAndRefilter();
-        }
+      if (areaName === 'sync' && (changes.customBrands || changes.excludedBrands)) {
+        log('log', 'Brand lists changed (sync), refiltering...');
+        filterConfigCache = null;
+        resetAndRefilter();
       }
     });
   }
