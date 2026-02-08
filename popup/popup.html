@@ -112,6 +112,27 @@
 
       <div class="divider"></div>
 
+      <!-- 非表示ブランド -->
+      <div class="excluded-brands-section">
+        <div class="excluded-brands-header" id="excluded-brands-toggle">
+          <span class="excluded-brands-header-left">
+            <span>🚫</span>
+            <span>非表示ブランド</span>
+            <span class="excluded-brands-count" id="excluded-brands-count">0件</span>
+          </span>
+          <span class="excluded-brands-arrow" id="excluded-brands-arrow">▼</span>
+        </div>
+        <div class="excluded-brands-body" id="excluded-brands-body" style="display: none;">
+          <div class="excluded-brands-form">
+            <input type="text" id="excluded-brand-input" class="excluded-brands-input" placeholder="ブランド名を入力">
+            <button id="excluded-brand-add-btn" class="excluded-brands-add-btn">追加</button>
+          </div>
+          <div class="excluded-brands-list" id="excluded-brands-list"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <!-- ページリロードボタン -->
       <button id="reload-btn" class="btn-reload">
         <span>🔄</span>

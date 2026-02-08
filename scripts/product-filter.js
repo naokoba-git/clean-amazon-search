@@ -143,6 +143,23 @@ const ProductFilter = {
     .cas-product-dimmed:hover {
       opacity: 1;
     }
+    .cas-badge-exclude-btn {
+      background: none !important;
+      border: none !important;
+      color: #155724 !important;
+      font-size: 18px !important;
+      font-weight: bold !important;
+      cursor: pointer !important;
+      padding: 0 2px !important;
+      margin-left: 8px !important;
+      line-height: 1 !important;
+      opacity: 0.5 !important;
+      transition: opacity 0.2s !important;
+    }
+    .cas-badge-exclude-btn:hover {
+      opacity: 1 !important;
+      color: #dc3545 !important;
+    }
   `,
 
   /**
@@ -732,10 +749,20 @@ const ProductFilter = {
       ? simplifiedReasons.join('・')
       : '';
 
+    // ブランド名をdata属性に保存（×ボタン用）
+    const productInfo = this.extractProductInfo(productElement);
+    const brandName = productInfo.brandName || '';
+
+    // 信頼ブランドの場合は×ボタンを追加
+    const excludeBtn = type === this.BADGE_TYPES.TRUSTED && brandName
+      ? `<button class="cas-badge-exclude-btn" data-exclude-brand="${brandName.replace(/"/g, '&quot;')}" title="${brandName}を非表示ブランドに追加">&times;</button>`
+      : '';
+
     badge.innerHTML = `
       <span class="cas-product-badge-icon">${icon}</span>
       <span>${text}</span>
       ${reasonsText ? `<span class="cas-product-badge-reasons">| ${reasonsText}</span>` : ''}
+      ${excludeBtn}
     `;
 
     // タイトルセクションの後（Aタグの外側）に挿入
@@ -904,10 +931,10 @@ const ProductFilter = {
         }
       }
 
-      // カスタムブランドをマージ
+      // カスタムブランドをマージ + 非表示ブランドを除外（chrome.storage.sync）
       try {
         const result = await new Promise((resolve) => {
-          chrome.storage.local.get(['customBrands'], resolve);
+          chrome.storage.sync.get(['customBrands', 'excludedBrands'], resolve);
         });
         if (result.customBrands && Array.isArray(result.customBrands)) {
           for (const brand of result.customBrands) {
@@ -916,8 +943,13 @@ const ProductFilter = {
             }
           }
         }
+        // 非表示ブランドを除外
+        if (result.excludedBrands && Array.isArray(result.excludedBrands)) {
+          const excludedLower = result.excludedBrands.map(b => b.toLowerCase());
+          return allBrands.filter(b => !excludedLower.includes(b.toLowerCase()));
+        }
       } catch (e) {
-        console.warn('[ProductFilter] Failed to load custom brands:', e);
+        console.warn('[ProductFilter] Failed to load custom/excluded brands:', e);
       }
 
       return allBrands;

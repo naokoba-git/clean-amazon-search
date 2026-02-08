@@ -69,7 +69,14 @@ const UIManager = {
       customBrandsCount: document.getElementById('custom-brands-count'),
       customBrandInput: document.getElementById('custom-brand-input'),
       customBrandAddBtn: document.getElementById('custom-brand-add-btn'),
-      customBrandsList: document.getElementById('custom-brands-list')
+      customBrandsList: document.getElementById('custom-brands-list'),
+      excludedBrandsToggle: document.getElementById('excluded-brands-toggle'),
+      excludedBrandsBody: document.getElementById('excluded-brands-body'),
+      excludedBrandsArrow: document.getElementById('excluded-brands-arrow'),
+      excludedBrandsCount: document.getElementById('excluded-brands-count'),
+      excludedBrandInput: document.getElementById('excluded-brand-input'),
+      excludedBrandAddBtn: document.getElementById('excluded-brand-add-btn'),
+      excludedBrandsList: document.getElementById('excluded-brands-list')
     };
   },
 
@@ -131,6 +138,25 @@ const UIManager = {
         <button class="custom-brands-remove-btn" data-brand="${escaped}">&times;</button>
       </div>`;
     }).join('');
+  },
+
+  renderExcludedBrands(brands) {
+    const list = this.elements.excludedBrandsList;
+    this.elements.excludedBrandsCount.textContent = `${brands.length}件`;
+
+    if (brands.length === 0) {
+      list.innerHTML = '<div class="excluded-brands-empty">非表示ブランドはありません</div>';
+      return;
+    }
+
+    list.innerHTML = brands.map(name => {
+      const escaped = this.escapeHtml(name);
+      return `
+      <div class="excluded-brands-item">
+        <span class="excluded-brands-item-name">${escaped}</span>
+        <button class="excluded-brands-remove-btn" data-brand="${escaped}">&times;</button>
+      </div>`;
+    }).join('');
   }
 };
 
@@ -143,7 +169,7 @@ const CustomBrandsManager = {
 
   async load() {
     try {
-      const result = await chrome.storage.local.get(['customBrands']);
+      const result = await chrome.storage.sync.get(['customBrands']);
       this.brands = result.customBrands || [];
     } catch (error) {
       console.error('カスタムブランドの読み込みに失敗:', error);
@@ -153,13 +179,51 @@ const CustomBrandsManager = {
   },
 
   async save() {
-    await chrome.storage.local.set({ customBrands: this.brands });
+    await chrome.storage.sync.set({ customBrands: this.brands });
   },
 
   async add(name) {
     const trimmed = name.trim();
     if (!trimmed) return false;
-    // 重複チェック（case-insensitive）
+    if (this.brands.some(b => b.toLowerCase() === trimmed.toLowerCase())) {
+      return false;
+    }
+    this.brands.push(trimmed);
+    await this.save();
+    return true;
+  },
+
+  async remove(name) {
+    this.brands = this.brands.filter(b => b !== name);
+    await this.save();
+  }
+};
+
+/**
+ * 非表示ブランド管理モジュール
+ */
+const ExcludedBrandsManager = {
+  /** @type {string[]} */
+  brands: [],
+
+  async load() {
+    try {
+      const result = await chrome.storage.sync.get(['excludedBrands']);
+      this.brands = result.excludedBrands || [];
+    } catch (error) {
+      console.error('非表示ブランドの読み込みに失敗:', error);
+      this.brands = [];
+    }
+    return this.brands;
+  },
+
+  async save() {
+    await chrome.storage.sync.set({ excludedBrands: this.brands });
+  },
+
+  async add(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
     if (this.brands.some(b => b.toLowerCase() === trimmed.toLowerCase())) {
       return false;
     }
@@ -232,6 +296,34 @@ const EventHandlers = {
     UIManager.renderCustomBrands(CustomBrandsManager.brands);
   },
 
+  onExcludedBrandsToggle() {
+    const body = UIManager.elements.excludedBrandsBody;
+    const arrow = UIManager.elements.excludedBrandsArrow;
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    arrow.classList.toggle('open', !isOpen);
+  },
+
+  async onExcludedBrandAdd() {
+    const input = UIManager.elements.excludedBrandInput;
+    const name = input.value.trim();
+    if (!name) return;
+
+    const added = await ExcludedBrandsManager.add(name);
+    if (added) {
+      input.value = '';
+      UIManager.renderExcludedBrands(ExcludedBrandsManager.brands);
+    }
+  },
+
+  async onExcludedBrandRemove(event) {
+    const btn = event.target.closest('.excluded-brands-remove-btn');
+    if (!btn) return;
+    const name = btn.dataset.brand;
+    await ExcludedBrandsManager.remove(name);
+    UIManager.renderExcludedBrands(ExcludedBrandsManager.brands);
+  },
+
   /**
    * すべてのイベントリスナーを登録
    */
@@ -247,6 +339,14 @@ const EventHandlers = {
       if (e.key === 'Enter') this.onCustomBrandAdd();
     });
     elements.customBrandsList.addEventListener('click', (e) => this.onCustomBrandRemove(e));
+
+    // 非表示ブランド
+    elements.excludedBrandsToggle.addEventListener('click', this.onExcludedBrandsToggle);
+    elements.excludedBrandAddBtn.addEventListener('click', () => this.onExcludedBrandAdd());
+    elements.excludedBrandInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.onExcludedBrandAdd();
+    });
+    elements.excludedBrandsList.addEventListener('click', (e) => this.onExcludedBrandRemove(e));
   }
 };
 
@@ -268,6 +368,26 @@ const PopupController = {
   },
 
   /**
+   * chrome.storage.local → sync マイグレーション
+   */
+  async migrateToSync() {
+    try {
+      const local = await chrome.storage.local.get(['customBrands', '_migratedToSync']);
+      if (local._migratedToSync) return;
+
+      if (local.customBrands && Array.isArray(local.customBrands) && local.customBrands.length > 0) {
+        const sync = await chrome.storage.sync.get(['customBrands']);
+        if (!sync.customBrands || sync.customBrands.length === 0) {
+          await chrome.storage.sync.set({ customBrands: local.customBrands });
+        }
+      }
+      await chrome.storage.local.set({ _migratedToSync: true });
+    } catch (e) {
+      console.warn('Migration failed:', e);
+    }
+  },
+
+  /**
    * ポップアップを初期化
    */
   async init() {
@@ -282,9 +402,16 @@ const PopupController = {
       const settings = await SettingsManager.loadAll();
       this.initializeUI(settings);
 
+      // local→syncマイグレーション（一度だけ実行）
+      await this.migrateToSync();
+
       // カスタムブランドを読み込んで描画
       const brands = await CustomBrandsManager.load();
       UIManager.renderCustomBrands(brands);
+
+      // 非表示ブランドを読み込んで描画
+      const excludedBrands = await ExcludedBrandsManager.load();
+      UIManager.renderExcludedBrands(excludedBrands);
     } catch (error) {
       console.error('ポップアップの初期化に失敗:', error);
     }

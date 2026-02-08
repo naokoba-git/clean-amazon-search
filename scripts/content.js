@@ -246,22 +246,66 @@
    */
   function watchStorageChanges() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== 'local') return;
-
-      if (changes.filterLevel) {
-        const newLevel = changes.filterLevel.newValue;
-        log('log', `Filter level changed: ${currentFilterLevel} -> ${newLevel}`);
-        currentFilterLevel = newLevel;
-
-        // ページを再フィルタリング
-        filterConfigCache = null;
-        resetAndRefilter();
+      // local: filterLevel変更
+      if (areaName === 'local') {
+        if (changes.filterLevel) {
+          const newLevel = changes.filterLevel.newValue;
+          log('log', `Filter level changed: ${currentFilterLevel} -> ${newLevel}`);
+          currentFilterLevel = newLevel;
+          filterConfigCache = null;
+          resetAndRefilter();
+        }
       }
 
-      if (changes.customBrands) {
-        log('log', 'Custom brands changed, refiltering...');
-        filterConfigCache = null;
-        resetAndRefilter();
+      // sync: customBrands / excludedBrands 変更
+      if (areaName === 'sync') {
+        if (changes.customBrands) {
+          log('log', 'Custom brands changed, refiltering...');
+          filterConfigCache = null;
+          resetAndRefilter();
+        }
+        if (changes.excludedBrands) {
+          log('log', 'Excluded brands changed, refiltering...');
+          filterConfigCache = null;
+          resetAndRefilter();
+        }
+      }
+    });
+  }
+
+  /**
+   * バッジ×ボタンのクリックイベント（イベント委任）
+   */
+  function watchBadgeExcludeClicks() {
+    document.body.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.cas-badge-exclude-btn');
+      if (!btn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const brandName = btn.dataset.excludeBrand;
+      if (!brandName) return;
+
+      try {
+        const result = await new Promise((resolve) => {
+          chrome.storage.sync.get(['excludedBrands'], resolve);
+        });
+        const excludedBrands = result.excludedBrands || [];
+
+        // 重複チェック
+        if (excludedBrands.some(b => b.toLowerCase() === brandName.toLowerCase())) {
+          log('log', `Brand "${brandName}" already excluded`);
+          return;
+        }
+
+        excludedBrands.push(brandName);
+        await new Promise((resolve) => {
+          chrome.storage.sync.set({ excludedBrands }, resolve);
+        });
+        log('log', `Brand "${brandName}" added to excluded brands`);
+      } catch (error) {
+        log('error', 'Failed to add excluded brand:', error);
       }
     });
   }
@@ -364,6 +408,9 @@
 
       // storage変更を監視
       watchStorageChanges();
+
+      // バッジ×ボタンのクリック監視
+      watchBadgeExcludeClicks();
 
       // URL変更を監視（ページ遷移対応）
       watchUrlChanges();
